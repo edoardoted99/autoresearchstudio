@@ -20,7 +20,7 @@ import torch
 # Constants (fixed, do not modify)
 # ---------------------------------------------------------------------------
 
-TIME_BUDGET = 120       # training time budget in seconds (2 minutes)
+TIME_BUDGET = 20        # training time budget in seconds
 EVAL_BATCHES = 50       # number of batches for validation eval
 BATCH_SIZE = 128        # fixed batch size for evaluation
 

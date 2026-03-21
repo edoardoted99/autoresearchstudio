@@ -11,7 +11,7 @@ files:
 
 experiment:
   run_command: python train.py
-  timeout: 180
+  timeout: 60
   setup_command: python prepare.py
   log_file: run.log
   constraints: >
@@ -36,5 +36,5 @@ judge:
     Removing complexity while keeping accuracy is a great outcome.
 
 api:
-  key: null
-  endpoint: https://autoresearch.studio/api
+  key: ars_test123456789
+  endpoint: http://localhost:8001

@@ -183,9 +183,11 @@ class ApiSync:
         self.endpoint = endpoint.rstrip("/")
         self.api_key = api_key
 
-    def sync_experiment(self, experiment: Experiment, tracker: LocalTracker) -> bool:
+    def sync_experiment(self, experiment: Experiment, tracker: LocalTracker,
+                        project_name: str = "") -> bool:
         """POST experiment data to the API. Non-blocking (runs in a thread)."""
         payload = {
+            "project_name": project_name,
             "run_tag": experiment.run_tag,
             "experiment_number": experiment.experiment_number,
             "commit_hash": experiment.commit_hash,
@@ -251,7 +253,7 @@ class Tracker:
         if self.api:
             exp = self.local.get_experiment(exp_id)
             if exp:
-                self.api.sync_experiment(exp, self.local)
+                self.api.sync_experiment(exp, self.local, self.config.project.name)
 
     def sync_pending(self):
         if self.api:

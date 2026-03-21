@@ -39,7 +39,7 @@ class Net(nn.Module):
 # Hyperparameters (edit these)
 # ---------------------------------------------------------------------------
 
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 3e-3
 BATCH_SIZE = 128
 WEIGHT_DECAY = 0.0
 

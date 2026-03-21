@@ -20,7 +20,7 @@ Once you get confirmation, kick off the experimentation.
 ## Experimentation
 
 Each experiment is run via `ars run`. The run command executes: `python train.py`.
-The training/evaluation runs for a **fixed timeout of 180 seconds**.
+The training/evaluation runs for a **fixed timeout of 60 seconds**.
 
 **What you CAN do:**
 - Modify `train.py` — everything is fair game: architecture, hyperparameters, optimizer, training loop, etc.
@@ -67,7 +67,7 @@ LOOP FOREVER:
 8. If the output says DISCARD: the commit was reverted automatically, you're back to the previous best.
 9. Repeat from step 1.
 
-**Timeout**: Each experiment should take ~3 minutes total. If a run exceeds the timeout, it is killed and treated as a failure (discard and revert).
+**Timeout**: Each experiment should take ~1 minutes total. If a run exceeds the timeout, it is killed and treated as a failure (discard and revert).
 
 **Crashes**: If a run crashes (OOM, bug, etc.), use your judgment: If it's something trivial to fix (typo, missing import), fix it and re-run. If the idea is fundamentally broken, just move on — the crash is already logged.
 
