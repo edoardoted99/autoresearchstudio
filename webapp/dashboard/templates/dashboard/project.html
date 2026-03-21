@@ -48,6 +48,20 @@
 </div>
 {% endif %}
 
+<!-- Progress Chart -->
+<div class="card">
+    <h2>Progress</h2>
+    <div style="position: relative; height: 350px;">
+        <canvas id="progressChart"></canvas>
+    </div>
+</div>
+
+<!-- Branch Tree -->
+<div class="card">
+    <h2>Experiment Tree</h2>
+    <div id="treeContainer" style="overflow-x: auto; padding: 16px 0;"></div>
+</div>
+
 <!-- Experiments table (htmx auto-refresh) -->
 <div class="card"
      hx-get="{% url 'experiments_table' project.id %}{% if current_run %}?run={{ current_run }}{% endif %}"
@@ -55,5 +69,190 @@
      hx-swap="innerHTML">
     {% include "dashboard/partials/experiments_table.html" %}
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+// --- Progress Chart (like Karpathy's progress.png) ---
+const chartData = {{ chart_data_json|safe }};
+const metricName = "{{ metric_name }}";
+
+const ctx = document.getElementById('progressChart').getContext('2d');
+new Chart(ctx, {
+    type: 'scatter',
+    data: {
+        datasets: [
+            {
+                label: 'Discarded',
+                data: chartData.discard_points,
+                backgroundColor: 'rgba(139, 148, 158, 0.3)',
+                borderColor: 'rgba(139, 148, 158, 0.5)',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                order: 3,
+            },
+            {
+                label: 'Kept',
+                data: chartData.keep_points,
+                backgroundColor: '#3fb950',
+                borderColor: '#2ea043',
+                pointRadius: 7,
+                pointHoverRadius: 9,
+                pointStyle: 'circle',
+                order: 1,
+            },
+            {
+                label: 'Running Best',
+                data: chartData.running_best,
+                type: 'line',
+                borderColor: '#2ea043',
+                backgroundColor: 'rgba(46, 160, 67, 0.1)',
+                borderWidth: 2,
+                fill: false,
+                stepped: 'after',
+                pointRadius: 0,
+                order: 2,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        const point = ctx.raw;
+                        let label = metricName + ': ' + (point.y !== null ? point.y.toFixed(6) : 'N/A');
+                        if (point.description) label += ' — ' + point.description;
+                        return label;
+                    }
+                }
+            },
+            legend: {
+                labels: { color: '#8b949e', usePointStyle: true }
+            }
+        },
+        scales: {
+            x: {
+                title: { display: true, text: 'Experiment #', color: '#8b949e' },
+                grid: { color: 'rgba(48, 54, 61, 0.5)' },
+                ticks: { color: '#8b949e' }
+            },
+            y: {
+                title: { display: true, text: metricName, color: '#8b949e' },
+                grid: { color: 'rgba(48, 54, 61, 0.5)' },
+                ticks: { color: '#8b949e' }
+            }
+        }
+    }
+});
+
+// --- Branch Tree (SVG) ---
+const treeNodes = {{ tree_nodes_json|safe }};
+
+function renderTree(nodes, container) {
+    if (!nodes.length) {
+        container.innerHTML = '<p style="color: var(--text-dim);">No experiments yet.</p>';
+        return;
+    }
+
+    const NODE_W = 160;
+    const NODE_H = 56;
+    const TRUNK_GAP_X = 180;
+    const BRANCH_GAP_Y = 80;
+    const PAD = 20;
+
+    // Separate trunk (keeps) and branches (discard/crash)
+    const trunk = nodes.filter(n => n.is_trunk);
+    const branches = nodes.filter(n => !n.is_trunk);
+
+    // Assign positions: trunk is horizontal, branches go down
+    const positions = {};
+    trunk.forEach((node, i) => {
+        positions[node.commit] = { x: PAD + i * TRUNK_GAP_X, y: PAD };
+    });
+
+    // Group branches by parent
+    const branchesByParent = {};
+    branches.forEach(n => {
+        const p = n.parent_commit;
+        if (!branchesByParent[p]) branchesByParent[p] = [];
+        branchesByParent[p].push(n);
+    });
+
+    let maxBranchY = PAD;
+    for (const [parent, children] of Object.entries(branchesByParent)) {
+        const parentPos = positions[parent];
+        if (!parentPos) continue;
+        children.forEach((child, i) => {
+            const y = parentPos.y + BRANCH_GAP_Y * (i + 1);
+            positions[child.commit] = { x: parentPos.x, y: y };
+            maxBranchY = Math.max(maxBranchY, y);
+        });
+    }
+
+    // Handle orphan branches (parent not in positions)
+    branches.forEach(n => {
+        if (!positions[n.commit]) {
+            maxBranchY += BRANCH_GAP_Y;
+            positions[n.commit] = { x: PAD, y: maxBranchY };
+        }
+    });
+
+    const svgW = PAD * 2 + Math.max(trunk.length, 1) * TRUNK_GAP_X;
+    const svgH = maxBranchY + NODE_H + PAD * 2;
+
+    let svg = `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, sans-serif;">`;
+
+    // Draw edges
+    // Trunk edges
+    for (let i = 1; i < trunk.length; i++) {
+        const from = positions[trunk[i - 1].commit];
+        const to = positions[trunk[i].commit];
+        if (from && to) {
+            svg += `<line x1="${from.x + NODE_W}" y1="${from.y + NODE_H / 2}" x2="${to.x}" y2="${to.y + NODE_H / 2}" stroke="#2ea043" stroke-width="2.5"/>`;
+        }
+    }
+
+    // Branch edges
+    branches.forEach(n => {
+        const parentPos = positions[n.parent_commit];
+        const childPos = positions[n.commit];
+        if (parentPos && childPos) {
+            const x1 = parentPos.x + NODE_W / 2;
+            const y1 = parentPos.y + NODE_H;
+            const x2 = childPos.x + NODE_W / 2;
+            const y2 = childPos.y;
+            svg += `<path d="M${x1},${y1} C${x1},${y1 + 20} ${x2},${y2 - 20} ${x2},${y2}" stroke="${n.status === 'crash' ? '#f85149' : '#30363d'}" stroke-width="1.5" fill="none" stroke-dasharray="${n.status === 'crash' ? '4,3' : 'none'}"/>`;
+        }
+    });
+
+    // Draw nodes
+    nodes.forEach(n => {
+        const pos = positions[n.commit];
+        if (!pos) return;
+
+        const colors = {
+            keep: { bg: 'rgba(63,185,80,0.15)', border: '#3fb950', text: '#3fb950' },
+            discard: { bg: 'rgba(139,148,158,0.1)', border: '#30363d', text: '#8b949e' },
+            crash: { bg: 'rgba(248,81,73,0.1)', border: '#f85149', text: '#f85149' },
+            running: { bg: 'rgba(210,153,34,0.15)', border: '#d29922', text: '#d29922' },
+        };
+        const c = colors[n.status] || colors.discard;
+
+        svg += `<g style="cursor: pointer;" onclick="window.location='/experiment/${n.id}/'">`;
+        svg += `<rect x="${pos.x}" y="${pos.y}" width="${NODE_W}" height="${NODE_H}" rx="8" fill="${c.bg}" stroke="${c.border}" stroke-width="1.5"/>`;
+        svg += `<text x="${pos.x + 8}" y="${pos.y + 18}" fill="${c.text}" font-size="12" font-weight="600">#${n.number} ${n.commit}</text>`;
+        svg += `<text x="${pos.x + 8}" y="${pos.y + 34}" fill="#e6edf3" font-size="11">${n.metric !== null ? n.metric.toFixed(4) : '—'}</text>`;
+        svg += `<text x="${pos.x + 8}" y="${pos.y + 48}" fill="#8b949e" font-size="10">${n.description.substring(0, 22)}</text>`;
+        svg += `</g>`;
+    });
+
+    svg += '</svg>';
+    container.innerHTML = svg;
+}
+
+renderTree(treeNodes, document.getElementById('treeContainer'));
+</script>
 
 {% endblock %}
