@@ -1,0 +1,40 @@
+project:
+  name: mnist-autoresearch
+  description: Autonomous optimization of a CNN for MNIST digit classification.
+  goal: Get the highest val_accuracy.
+
+files:
+  editable:
+    - train.py
+  readonly:
+    - prepare.py
+
+experiment:
+  run_command: python train.py
+  timeout: 180
+  setup_command: python prepare.py
+  log_file: run.log
+  constraints: >
+    Keep the model small enough to train on CPU in the time budget.
+    A GPU is not required for this example.
+
+metric:
+  name: val_accuracy
+  pattern: "^val_accuracy:\\s+([\\d.]+)"
+  direction: maximize
+  secondary:
+    - name: val_loss
+      pattern: "^val_loss:\\s+([\\d.]+)"
+    - name: num_params
+      pattern: "^num_params:\\s+([\\d]+)"
+
+judge:
+  threshold: 0.0
+  simplicity_note: >
+    **Simplicity criterion**: All else being equal, simpler is better.
+    A tiny accuracy gain that adds ugly complexity is not worth it.
+    Removing complexity while keeping accuracy is a great outcome.
+
+api:
+  key: null
+  endpoint: https://autoresearch.studio/api
