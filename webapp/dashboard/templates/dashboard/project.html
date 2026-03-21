@@ -1,0 +1,59 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ project.name }} — autoresearch.studio{% endblock %}
+
+{% block header_right %}
+<span class="key-info">{{ api_key.name }}</span>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'index' %}" class="back-link">&larr; All Projects</a>
+
+<h2 style="margin-bottom: 20px;">{{ project.name }}</h2>
+
+<!-- Stats -->
+<div class="card">
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value">{{ total }}</div>
+            <div class="stat-label">Total</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: var(--green);">{{ keeps }}</div>
+            <div class="stat-label">Keep</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ discards }}</div>
+            <div class="stat-label">Discard</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: var(--red);">{{ crashes }}</div>
+            <div class="stat-label">Crash</div>
+        </div>
+        {% if best %}
+        <div class="stat">
+            <div class="stat-value best-marker">{{ best.metric_value }}</div>
+            <div class="stat-label">Best {{ best.metric_name }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Run filter tabs -->
+{% if run_tags|length > 1 %}
+<div class="run-tabs">
+    <a href="{% url 'project_detail' project.id %}" class="run-tab {% if not current_run %}active{% endif %}">All</a>
+    {% for tag in run_tags %}
+    <a href="{% url 'project_detail' project.id %}?run={{ tag }}" class="run-tab {% if current_run == tag %}active{% endif %}">{{ tag }}</a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Experiments table (htmx auto-refresh) -->
+<div class="card"
+     hx-get="{% url 'experiments_table' project.id %}{% if current_run %}?run={{ current_run }}{% endif %}"
+     hx-trigger="every 5s"
+     hx-swap="innerHTML">
+    {% include "dashboard/partials/experiments_table.html" %}
+</div>
+
+{% endblock %}

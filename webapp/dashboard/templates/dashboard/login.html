@@ -1,0 +1,15 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Login — autoresearch.studio{% endblock %}
+
+{% block content %}
+<div class="login-form card">
+    <h2>Connect with API Key</h2>
+    <p style="color: var(--text-dim); margin-bottom: 16px;">
+        Enter your API key to view your experiments.
+    </p>
+    <form method="get" action="/">
+        <input type="text" name="key" placeholder="ars_xxxxxxxxxxxx" required>
+        <button type="submit">Connect</button>
+    </form>
+</div>
+{% endblock %}

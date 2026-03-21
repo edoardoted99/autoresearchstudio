@@ -1,0 +1,46 @@
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Commit</th>
+            <th>Metric</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for exp in experiments %}
+        <tr>
+            <td>{{ exp.experiment_number }}</td>
+            <td><code>{{ exp.commit_hash|truncatechars:9 }}</code></td>
+            <td>
+                {% if exp.metric_value is not None %}
+                    {{ exp.metric_value|floatformat:6 }}
+                {% else %}
+                    <span style="color: var(--text-dim);">—</span>
+                {% endif %}
+            </td>
+            <td><span class="badge badge-{{ exp.status }}">{{ exp.status }}</span></td>
+            <td>
+                {% if exp.duration_seconds %}
+                    {{ exp.duration_seconds|floatformat:0 }}s
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'experiment_detail' exp.id %}">
+                    {{ exp.description|truncatechars:60 }}
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" style="color: var(--text-dim); text-align: center; padding: 24px;">
+                No experiments yet. Waiting for data...
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

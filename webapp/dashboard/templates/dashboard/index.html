@@ -1,0 +1,60 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Projects — autoresearch.studio{% endblock %}
+
+{% block header_right %}
+<span class="key-info">{{ api_key.name }} &middot; {{ api_key.key|truncatechars:16 }}</span>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 20px;">Projects</h2>
+
+{% if not projects %}
+<div class="card">
+    <p style="color: var(--text-dim);">
+        No experiments received yet. Configure your API key in <code>autoresearch.yaml</code>
+        and run some experiments.
+    </p>
+</div>
+{% endif %}
+
+{% for item in projects %}
+<div class="card">
+    <h2><a href="{% url 'project_detail' item.project.id %}">{{ item.project.name }}</a></h2>
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value">{{ item.total }}</div>
+            <div class="stat-label">Total</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: var(--green);">{{ item.keeps }}</div>
+            <div class="stat-label">Keep</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">{{ item.discards }}</div>
+            <div class="stat-label">Discard</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color: var(--red);">{{ item.crashes }}</div>
+            <div class="stat-label">Crash</div>
+        </div>
+    </div>
+
+    {% if item.best %}
+    <p>Best: <strong class="best-marker">{{ item.best.metric_name }} = {{ item.best.metric_value }}</strong>
+       (#{{ item.best.experiment_number }} — {{ item.best.description|truncatechars:60 }})</p>
+    {% endif %}
+
+    {% if item.latest %}
+    <p style="color: var(--text-dim); font-size: 13px; margin-top: 4px;">
+        Latest: #{{ item.latest.experiment_number }} {{ item.latest.status }}
+        {% if item.latest.metric_value %}{{ item.latest.metric_value }}{% endif %}
+        — {{ item.latest.description|truncatechars:50 }}
+    </p>
+    {% endif %}
+
+    <p style="color: var(--text-dim); font-size: 12px; margin-top: 8px;">
+        Runs: {{ item.run_tags|join:", " }}
+    </p>
+</div>
+{% endfor %}
+{% endblock %}
