@@ -24,14 +24,20 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
         self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
+        self.dropout1 = nn.Dropout2d(0.25)
+        self.dropout2 = nn.Dropout2d(0.25)
         self.fc1 = nn.Linear(64 * 7 * 7, 128)
+        self.dropout3 = nn.Dropout(0.5)
         self.fc2 = nn.Linear(128, 10)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
+        x = self.dropout1(x)
         x = self.pool(F.relu(self.conv2(x)))
+        x = self.dropout2(x)
         x = x.view(x.size(0), -1)
         x = F.relu(self.fc1(x))
+        x = self.dropout3(x)
         x = self.fc2(x)
         return x
 
@@ -63,6 +69,7 @@ def main():
     print(f"Parameters: {num_params:,}")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=5000, eta_min=1e-5)
     train_loader = make_dataloader(train_images, train_labels, BATCH_SIZE)
 
     # Training loop (time-budgeted)
@@ -81,6 +88,7 @@ def main():
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         dt = time.time() - t0
         total_training_time += dt

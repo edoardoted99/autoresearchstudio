@@ -16,3 +16,5 @@ dependencies = [
 
 [project.scripts]
 ars = "autoresearchstudio.cli:main"
+
+

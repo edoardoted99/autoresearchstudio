@@ -36,5 +36,5 @@ judge:
     Removing complexity while keeping accuracy is a great outcome.
 
 api:
-  key: ars_test123456789
-  endpoint: http://localhost:8001
+  key: null
+  endpoint: https://autoresearch.studio/api
