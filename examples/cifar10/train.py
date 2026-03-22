@@ -52,7 +52,7 @@ class Net(nn.Module):
 
 LEARNING_RATE = 2e-3
 BATCH_SIZE = 128
-WEIGHT_DECAY = 1e-4
+WEIGHT_DECAY = 2e-4
 
 # ---------------------------------------------------------------------------
 # Training
