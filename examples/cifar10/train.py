@@ -50,7 +50,7 @@ class Net(nn.Module):
 # Hyperparameters (edit these)
 # ---------------------------------------------------------------------------
 
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 2e-3
 BATCH_SIZE = 128
 WEIGHT_DECAY = 1e-4
 
@@ -74,7 +74,7 @@ def main():
     print(f"Parameters: {num_params:,}")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15000)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=20000)
     train_loader = make_dataloader(train_images, train_labels, BATCH_SIZE)
 
     # Training loop (time-budgeted)
