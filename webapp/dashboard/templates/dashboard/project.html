@@ -152,6 +152,7 @@ const keepAnnotationPlugin = {
     }
 };
 
+const apiKey = "{{ api_key.key }}";
 const ctx = document.getElementById('progressChart').getContext('2d');
 new Chart(ctx, {
     type: 'scatter',
@@ -342,7 +343,7 @@ function renderTree(nodes, container) {
         };
         const c = colors[n.status] || colors.discard;
 
-        svg += `<g style="cursor: pointer;" onclick="window.location='/experiment/${n.id}/'">`;
+        svg += `<g style="cursor: pointer;" onclick="window.location='/experiment/${n.id}/?key=${apiKey}'">`;
         svg += `<rect x="${pos.x}" y="${pos.y}" width="${w}" height="${NODE_H}" rx="8" fill="${c.bg}" stroke="${c.border}" stroke-width="1.5"/>`;
         svg += `<text x="${pos.x + 8}" y="${pos.y + 18}" fill="${c.text}" font-size="12" font-weight="600">#${n.number} ${n.commit}</text>`;
         svg += `<text x="${pos.x + 8}" y="${pos.y + 34}" fill="#e6edf3" font-size="11">${n.metric !== null ? n.metric.toFixed(4) : '—'}</text>`;
