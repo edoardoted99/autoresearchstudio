@@ -277,6 +277,7 @@ def experiments_table(request, project_id):
         experiments = experiments.filter(run_tag=run_tag)
 
     return render(request, "dashboard/partials/experiments_table.html", {
+        "api_key": api_key,
         "experiments": experiments,
         "project": project,
     })

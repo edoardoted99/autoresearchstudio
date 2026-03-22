@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'index' %}?all" class="back-link">&larr; All Projects</a>
+<a href="{% url 'index' %}?all&key={{ api_key.key }}" class="back-link">&larr; All Projects</a>
 
 <h2 style="margin-bottom: 20px;">{{ project.name }}</h2>
 
@@ -41,7 +41,7 @@
 
 <!-- Running experiment progress bar -->
 {% if running_exp %}
-<div class="card" id="progress-card" hx-get="{% url 'project_detail' project.id %}{% if current_run %}?run={{ current_run }}{% endif %}" hx-trigger="every 5s" hx-select="#progress-card" hx-swap="outerHTML">
+<div class="card" id="progress-card" hx-get="{% url 'project_detail' project.id %}?key={{ api_key.key }}{% if current_run %}&run={{ current_run }}{% endif %}" hx-trigger="every 5s" hx-select="#progress-card" hx-swap="outerHTML">
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
         <span class="badge badge-running" style="display: inline-flex; align-items: center; gap: 6px;">
             <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); display: inline-block; animation: pulse 1.5s infinite;"></span>
@@ -92,9 +92,9 @@
 <!-- Run filter tabs -->
 {% if run_tags|length > 1 %}
 <div class="run-tabs">
-    <a href="{% url 'project_detail' project.id %}" class="run-tab {% if not current_run %}active{% endif %}">All</a>
+    <a href="{% url 'project_detail' project.id %}?key={{ api_key.key }}" class="run-tab {% if not current_run %}active{% endif %}">All</a>
     {% for tag in run_tags %}
-    <a href="{% url 'project_detail' project.id %}?run={{ tag }}" class="run-tab {% if current_run == tag %}active{% endif %}">{{ tag }}</a>
+    <a href="{% url 'project_detail' project.id %}?run={{ tag }}&key={{ api_key.key }}" class="run-tab {% if current_run == tag %}active{% endif %}">{{ tag }}</a>
     {% endfor %}
 </div>
 {% endif %}
@@ -115,7 +115,7 @@
 
 <!-- Experiments table (htmx auto-refresh) -->
 <div class="card"
-     hx-get="{% url 'experiments_table' project.id %}{% if current_run %}?run={{ current_run }}{% endif %}"
+     hx-get="{% url 'experiments_table' project.id %}?key={{ api_key.key }}{% if current_run %}&run={{ current_run }}{% endif %}"
      hx-trigger="every 5s"
      hx-swap="innerHTML">
     {% include "dashboard/partials/experiments_table.html" %}

@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'project_detail' project.id %}?run={{ experiment.run_tag }}" class="back-link">&larr; {{ project.name }} / {{ experiment.run_tag }}</a>
+<a href="{% url 'project_detail' project.id %}?run={{ experiment.run_tag }}&key={{ api_key.key }}" class="back-link">&larr; {{ project.name }} / {{ experiment.run_tag }}</a>
 
 <div class="card">
     <h2>Experiment #{{ experiment.experiment_number }}

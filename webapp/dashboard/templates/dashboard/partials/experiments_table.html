@@ -30,7 +30,7 @@
                 {% endif %}
             </td>
             <td>
-                <a href="{% url 'experiment_detail' exp.id %}">
+                <a href="{% url 'experiment_detail' exp.id %}?key={{ api_key.key }}">
                     {{ exp.description|truncatechars:60 }}
                 </a>
             </td>
