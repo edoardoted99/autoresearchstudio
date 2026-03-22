@@ -4,35 +4,46 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}autoresearch.studio{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <style>
         :root {
-            --bg: #0d1117;
-            --surface: #161b22;
-            --border: #30363d;
-            --text: #e6edf3;
-            --text-dim: #8b949e;
-            --green: #3fb950;
-            --red: #f85149;
-            --yellow: #d29922;
-            --blue: #58a6ff;
-            --purple: #bc8cff;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-glow: rgba(59,130,246,0.3);
+            --accent-dim: rgba(59,130,246,0.06);
+            --green: #22c55e;
+            --red: #ef4444;
+            --yellow: #eab308;
+            --bg: #030712;
+            --surface: rgba(17,24,39,0.5);
+            --border: rgba(55,65,81,0.5);
+            --text: #f3f4f6;
+            --text-dim: #9ca3af;
+            --dim: #6b7280;
+            --faint: #374151;
+            --mono: 'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background: var(--bg);
             color: var(--text);
             line-height: 1.5;
         }
-        a { color: var(--blue); text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { color: #60a5fa; }
+        code { background: rgba(255,255,255,0.06); padding: .15rem .4rem; border-radius: 4px; font-size: .85em; font-family: var(--mono); }
 
         .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
+        /* ── Nav ── */
         header {
             border-bottom: 1px solid var(--border);
-            padding: 16px 0;
+            background: rgba(3,7,18,0.8);
+            backdrop-filter: blur(16px);
+            position: sticky; top: 0; z-index: 50;
+            padding: 1rem 0;
             margin-bottom: 32px;
         }
         header .container {
@@ -40,17 +51,30 @@
             align-items: center;
             justify-content: space-between;
         }
-        header h1 { font-size: 20px; font-weight: 600; }
-        header .key-info { color: var(--text-dim); font-size: 13px; }
+        header .brand {
+            font-size: 1.1rem; font-weight: 700; color: var(--text);
+            text-decoration: none; letter-spacing: -.02em;
+        }
+        header .brand em { color: var(--accent); font-style: normal; }
+        header .brand .brand-ico { font-size: 1.3rem; margin-right: .3rem; vertical-align: middle; }
+        header .nav-right {
+            display: flex; align-items: center; gap: 1rem;
+            font-size: .875rem; color: var(--text-dim);
+        }
+        header .nav-right a { color: var(--text-dim); transition: color .15s; }
+        header .nav-right a:hover { color: var(--text); text-decoration: none; }
 
+        /* ── Cards ── */
         .card {
             background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            border: 1px solid var(--faint);
+            border-radius: .75rem;
             padding: 20px;
             margin-bottom: 16px;
+            transition: box-shadow .3s;
         }
-        .card h2 { font-size: 18px; margin-bottom: 12px; }
+        .card:hover { box-shadow: 0 0 20px rgba(59,130,246,0.04); }
+        .card h2 { font-size: 18px; margin-bottom: 12px; font-weight: 600; }
         .card h3 { font-size: 15px; color: var(--text-dim); margin-bottom: 8px; }
 
         .stats {
@@ -59,16 +83,15 @@
             flex-wrap: wrap;
             margin-bottom: 20px;
         }
-        .stat {
-            text-align: center;
-        }
+        .stat { text-align: center; }
         .stat-value {
             font-size: 28px;
             font-weight: 700;
             font-variant-numeric: tabular-nums;
         }
-        .stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; }
+        .stat-label { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
 
+        /* ── Table ── */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -78,38 +101,41 @@
         th {
             text-align: left;
             padding: 8px 12px;
-            border-bottom: 2px solid var(--border);
-            color: var(--text-dim);
+            border-bottom: 1px solid var(--faint);
+            color: var(--dim);
             font-size: 12px;
             text-transform: uppercase;
             font-weight: 600;
+            letter-spacing: .05em;
         }
         td {
             padding: 8px 12px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(55,65,81,0.3);
         }
         tr:hover { background: rgba(255,255,255,0.02); }
 
+        /* ── Badges ── */
         .badge {
             display: inline-block;
-            padding: 2px 8px;
+            padding: 2px 10px;
             border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
         }
-        .badge-keep { background: rgba(63,185,80,0.15); color: var(--green); }
-        .badge-discard { background: rgba(139,148,158,0.15); color: var(--text-dim); }
-        .badge-crash { background: rgba(248,81,73,0.15); color: var(--red); }
-        .badge-running { background: rgba(210,153,34,0.15); color: var(--yellow); }
+        .badge-keep { background: rgba(34,197,94,0.15); color: var(--green); }
+        .badge-discard { background: rgba(107,114,128,0.15); color: var(--dim); }
+        .badge-crash { background: rgba(239,68,68,0.15); color: var(--red); }
+        .badge-running { background: rgba(234,179,8,0.15); color: var(--yellow); }
 
         .best-marker { color: var(--green); font-weight: 700; }
 
+        /* ── Diff ── */
         .diff-block {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
+            background: rgba(3,7,18,0.6);
+            border: 1px solid var(--faint);
+            border-radius: .5rem;
             padding: 16px;
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-family: var(--mono);
             font-size: 13px;
             overflow-x: auto;
             white-space: pre;
@@ -117,8 +143,9 @@
         }
         .diff-add { color: var(--green); }
         .diff-del { color: var(--red); }
-        .diff-header { color: var(--purple); }
+        .diff-header { color: #a78bfa; }
 
+        /* ── Run tabs ── */
         .run-tabs {
             display: flex;
             gap: 8px;
@@ -127,55 +154,38 @@
         }
         .run-tab {
             padding: 6px 14px;
-            border-radius: 6px;
+            border-radius: .5rem;
             font-size: 13px;
-            background: var(--surface);
-            border: 1px solid var(--border);
+            background: transparent;
+            border: 1px solid var(--faint);
             color: var(--text-dim);
             cursor: pointer;
+            transition: all .15s;
         }
-        .run-tab:hover { border-color: var(--text-dim); text-decoration: none; }
-        .run-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .run-tab:hover { border-color: var(--dim); color: var(--text); text-decoration: none; }
+        .run-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-        .login-form {
-            max-width: 400px;
-            margin: 80px auto;
-        }
-        .login-form input[type="text"] {
-            width: 100%;
-            padding: 10px 14px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--text);
-            font-size: 15px;
-            margin-bottom: 12px;
-        }
-        .login-form button {
-            padding: 10px 20px;
-            background: var(--green);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .login-form button:hover { opacity: 0.9; }
-
-        .back-link { margin-bottom: 16px; display: block; font-size: 14px; }
+        .back-link { margin-bottom: 16px; display: block; font-size: 14px; color: var(--text-dim); transition: color .15s; }
+        .back-link:hover { color: var(--text); }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 768px) {
+            .stats { gap: 16px; }
+            .stat-value { font-size: 22px; }
         }
     </style>
 </head>
 <body>
     <header>
         <div class="container">
-            <h1><a href="/" style="color: var(--text);">autoresearch.studio</a></h1>
-            {% block header_right %}{% endblock %}
+            <a href="/" class="brand"><span class="brand-ico">🔬</span>Auto<em>Research</em>Studio</a>
+            <div class="nav-right">
+                {% block header_right %}{% endblock %}
+            </div>
         </div>
     </header>
     <div class="container">

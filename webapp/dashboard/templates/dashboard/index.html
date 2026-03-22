@@ -2,12 +2,12 @@
 {% block title %}Projects — autoresearch.studio{% endblock %}
 
 {% block header_right %}
-<span class="key-info">{{ api_key.name }} &middot; {{ api_key.key|truncatechars:16 }}</span>
-<a href="{% url 'logout' %}" style="margin-left: 12px; font-size: 13px; color: var(--text-dim);">Change key</a>
+<span style="color: var(--dim); font-size: .85rem;">{{ api_key.name }} · <code style="font-size:.8rem">{{ api_key.key|truncatechars:16 }}</code></span>
+<a href="{% url 'logout' %}">Change key</a>
 {% endblock %}
 
 {% block content %}
-<h2 style="margin-bottom: 20px;">Projects</h2>
+<h2 style="margin-bottom: 20px; font-weight: 700;">Projects</h2>
 
 {% if not projects %}
 <div class="card">
@@ -47,13 +47,14 @@
 
     {% if item.latest %}
     <p style="color: var(--text-dim); font-size: 13px; margin-top: 4px;">
-        Latest: #{{ item.latest.experiment_number }} {{ item.latest.status }}
+        Latest: #{{ item.latest.experiment_number }}
+        <span class="badge badge-{{ item.latest.status }}">{{ item.latest.status }}</span>
         {% if item.latest.metric_value %}{{ item.latest.metric_value }}{% endif %}
         — {{ item.latest.description|truncatechars:50 }}
     </p>
     {% endif %}
 
-    <p style="color: var(--text-dim); font-size: 12px; margin-top: 8px;">
+    <p style="color: var(--dim); font-size: 12px; margin-top: 8px;">
         Runs: {{ item.run_tags|join:", " }}
     </p>
 </div>

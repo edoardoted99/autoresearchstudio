@@ -2,8 +2,8 @@
 {% block title %}{{ project.name }} — autoresearch.studio{% endblock %}
 
 {% block header_right %}
-<span class="key-info">{{ api_key.name }}</span>
-<a href="{% url 'logout' %}" style="margin-left: 12px; font-size: 13px; color: var(--text-dim);">Change key</a>
+<span style="color: var(--dim); font-size: .85rem;">{{ api_key.name }}</span>
+<a href="{% url 'logout' %}">Change key</a>
 {% endblock %}
 
 {% block content %}
