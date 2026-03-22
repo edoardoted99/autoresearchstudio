@@ -97,10 +97,11 @@ def main():
         x = torch.roll(x, shifts=(shift_y, shift_x), dims=(2, 3))
 
         logits = model(x)
-        loss = F.cross_entropy(logits, y)
+        loss = F.cross_entropy(logits, y, label_smoothing=0.05)
 
         optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
         scheduler.step()
 
