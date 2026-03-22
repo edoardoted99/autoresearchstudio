@@ -35,8 +35,8 @@ def index(request):
 
     projects = Project.objects.filter(api_key=api_key).order_by("-created_at")
 
-    # If only one project, go straight to it
-    if projects.count() == 1:
+    # If only one project and not explicitly requesting the list, go straight to it
+    if projects.count() == 1 and "all" not in request.GET:
         return redirect("project_detail", project_id=projects.first().id)
 
     project_data = []
