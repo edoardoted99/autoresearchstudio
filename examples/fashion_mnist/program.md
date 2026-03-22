@@ -1,8 +1,8 @@
-# mnist-autoresearch
+# fashion-mnist-autoresearch
 
 This is an autonomous research experiment managed by autoresearchstudio.
 
-Autonomous optimization of a CNN for MNIST digit classification.
+Autonomous optimization of a CNN for Fashion-MNIST clothing classification.
 
 ## Setup
 
@@ -21,7 +21,7 @@ Once you get confirmation, kick off the experimentation.
 ## Experimentation
 
 Each experiment is run via `ars run`. The run command executes: `python train.py`.
-The training/evaluation runs for a **fixed timeout of 60 seconds**.
+The training/evaluation runs for a **fixed timeout of 120 seconds**.
 
 **What you CAN do:**
 - Modify `train.py` — everything is fair game: architecture, hyperparameters, optimizer, training loop, etc.
@@ -33,7 +33,7 @@ The training/evaluation runs for a **fixed timeout of 60 seconds**.
 
 **The goal: Get the highest val_accuracy.** The metric is **val_accuracy** — higher is better.
 
-Keep the model small enough to train on CPU in the time budget. A GPU is not required for this example.
+Keep the model small enough to train on CPU in the time budget. A GPU is not required for this example. Fashion-MNIST is harder than MNIST — expect lower accuracy (~90% is a good baseline).
 
 
 **Simplicity criterion**: All else being equal, simpler is better. A tiny accuracy gain that adds ugly complexity is not worth it. Removing complexity while keeping accuracy is a great outcome.
@@ -68,7 +68,7 @@ LOOP FOREVER:
 8. If the output says DISCARD: the commit was reverted automatically, you're back to the previous best.
 9. Repeat from step 1.
 
-**Timeout**: Each experiment should take ~1 minutes total. If a run exceeds the timeout, it is killed and treated as a failure (discard and revert).
+**Timeout**: Each experiment should take ~2 minutes total. If a run exceeds the timeout, it is killed and treated as a failure (discard and revert).
 
 **Crashes**: If a run crashes (OOM, bug, etc.), use your judgment: If it's something trivial to fix (typo, missing import), fix it and re-run. If the idea is fundamentally broken, just move on — the crash is already logged.
 

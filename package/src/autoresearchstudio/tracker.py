@@ -179,9 +179,11 @@ class LocalTracker:
 class ApiSync:
     """Non-blocking HTTP sync to the webapp."""
 
-    def __init__(self, endpoint: str, api_key: str):
+    def __init__(self, endpoint: str, api_key: str, timeout_seconds: float = None):
         self.endpoint = endpoint.rstrip("/")
         self.api_key = api_key
+        self.timeout_seconds = timeout_seconds
+        self._pending_threads: list[threading.Thread] = []
 
     def sync_experiment(self, experiment: Experiment, tracker: LocalTracker,
                         project_name: str = "") -> bool:
@@ -198,6 +200,7 @@ class ApiSync:
             "status": experiment.status,
             "description": experiment.description,
             "diff": experiment.diff,
+            "timeout_seconds": self.timeout_seconds,
             "duration_seconds": experiment.duration_seconds,
             "started_at": experiment.started_at,
             "finished_at": experiment.finished_at,
@@ -211,17 +214,26 @@ class ApiSync:
                     headers={"Authorization": f"Bearer {self.api_key}"},
                     timeout=10,
                 )
+                if not resp.ok:
+                    print(f"Warning: API sync returned {resp.status_code}: {resp.text[:200]}")
                 if resp.ok and experiment.id is not None:
                     tracker.update_experiment(
                         experiment.id,
                         synced_at=datetime.now(timezone.utc).isoformat()
                     )
-            except Exception:
-                pass  # fire-and-forget
+            except Exception as e:
+                print(f"Warning: API sync failed: {e}")
 
         thread = threading.Thread(target=_post, daemon=True)
         thread.start()
+        self._pending_threads.append(thread)
         return True
+
+    def wait(self, timeout: float = 15):
+        """Wait for all pending sync threads to complete."""
+        for t in self._pending_threads:
+            t.join(timeout=timeout)
+        self._pending_threads.clear()
 
     def sync_pending(self, tracker: LocalTracker):
         """Retry syncing any experiments that haven't been synced yet."""
@@ -236,7 +248,8 @@ class Tracker:
         self.config = config
         self.local = LocalTracker(db_path)
         self.api = (
-            ApiSync(config.api.endpoint, config.api.key)
+            ApiSync(config.api.endpoint, config.api.key,
+                    timeout_seconds=config.experiment.timeout)
             if config.api.key
             else None
         )
@@ -272,4 +285,6 @@ class Tracker:
         return self.local.get_stats()
 
     def close(self):
+        if self.api:
+            self.api.wait()
         self.local.close()

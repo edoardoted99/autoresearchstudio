@@ -1,15 +1,410 @@
-{% extends "dashboard/base.html" %}
-{% block title %}Login — autoresearch.studio{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AutoResearchStudio — Autonomous ML Research</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
+  <style>
+    :root {
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-glow: rgba(59,130,246,0.3);
+      --accent-dim: rgba(59,130,246,0.06);
+      --green: #22c55e;
+      --red: #ef4444;
+      --bg: #030712;
+      --card: rgba(17,24,39,0.5);
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --dim: #6b7280;
+      --faint: #374151;
+      --border: rgba(55,65,81,0.5);
+      --mono: 'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+    a { color: var(--accent); text-decoration: none; }
+    code { background: rgba(255,255,255,0.06); padding: .15rem .4rem; border-radius: 4px; font-size: .85em; font-family: var(--mono); }
 
-{% block content %}
-<div class="login-form card">
-    <h2>Connect with API Key</h2>
-    <p style="color: var(--text-dim); margin-bottom: 16px;">
-        Enter your API key to view your experiments.
-    </p>
-    <form method="get" action="/">
-        <input type="text" name="key" placeholder="ars_xxxxxxxxxxxx" required>
-        <button type="submit">Connect</button>
+    /* ── Nav ── */
+    .nav {
+      border-bottom: 1px solid var(--border);
+      background: rgba(3,7,18,0.8); backdrop-filter: blur(16px);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .nav-in {
+      max-width: 72rem; margin: 0 auto; padding: 1rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand { font-size: 1.1rem; font-weight: 700; color: var(--text); text-decoration: none; letter-spacing: -.02em; }
+    .brand em { color: var(--accent); font-style: normal; }
+    .brand .brand-ico { font-size: 1.3rem; margin-right: .3rem; vertical-align: middle; }
+    .nav-r { display: flex; align-items: center; gap: 1rem; }
+    .nav-r a { color: var(--muted); font-size: .875rem; transition: color .15s; }
+    .nav-r a:hover { color: var(--text); }
+    .nav-r .btn-nav {
+      background: var(--accent); color: #fff; font-weight: 600;
+      padding: .5rem 1.25rem; border-radius: .5rem; font-size: .875rem; transition: background .15s;
+    }
+    .nav-r .btn-nav:hover { background: var(--accent-hover); }
+
+    /* ── Hero ── */
+    .hero-wrap {
+      background: radial-gradient(ellipse at top, var(--accent-dim) 0%, transparent 60%);
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px),
+        radial-gradient(ellipse at top, var(--accent-dim) 0%, transparent 60%);
+      background-size: 60px 60px, 60px 60px, 100% 100%;
+    }
+    .hero {
+      max-width: 72rem; margin: 0 auto; padding: 6rem 1.5rem 5rem; text-align: center;
+    }
+    .hero h1 {
+      font-size: 3rem; font-weight: 700; margin-bottom: 1rem; line-height: 1.1;
+      letter-spacing: -.02em;
+    }
+    .hero h1 em { color: var(--accent); font-style: normal; text-shadow: 0 0 30px var(--accent-glow); }
+    .hero .sub {
+      font-size: 1.125rem; color: var(--muted); max-width: 40rem;
+      margin: 0 auto 2.5rem; line-height: 1.65;
+    }
+    .hero-btns { display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--accent); color: #fff; font-weight: 600;
+      padding: .75rem 2rem; border-radius: .5rem; font-size: 1rem;
+      transition: all .15s; border: none; cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--accent-hover); color: #fff; }
+    .btn-outline {
+      border: 1px solid var(--faint); color: var(--muted); font-weight: 500;
+      padding: .75rem 2rem; border-radius: .5rem; font-size: 1rem;
+      transition: all .15s; background: transparent; cursor: pointer;
+    }
+    .btn-outline:hover { border-color: var(--dim); color: var(--text); }
+
+    /* Terminal */
+    .term-wrap { margin-top: 4rem; max-width: 42rem; margin-left: auto; margin-right: auto; }
+    .term {
+      background: rgb(17,24,39); border: 1px solid var(--faint);
+      border-radius: .75rem; overflow: hidden; text-align: left;
+    }
+    .term-bar { display: flex; align-items: center; gap: .5rem; padding: .75rem 1rem; border-bottom: 1px solid var(--faint); }
+    .dot { width: .75rem; height: .75rem; border-radius: 50%; }
+    .dot-r { background: rgba(239,68,68,0.8); } .dot-y { background: rgba(234,179,8,0.8); } .dot-g { background: rgba(34,197,94,0.8); }
+    .term-bar span { margin-left: .5rem; font-size: .75rem; color: var(--dim); }
+    .term pre {
+      padding: 1.25rem; margin: 0; font-family: var(--mono);
+      font-size: .875rem; line-height: 1.75; overflow-x: auto;
+    }
+    .term pre .c { color: var(--dim); }
+    .term pre .w { color: var(--muted); }
+    .term pre .a { color: var(--accent); }
+    .term pre .g { color: var(--green); }
+    .term pre .r { color: var(--red); }
+    .term pre .gw { color: var(--green); font-weight: 600; }
+
+    /* ── Loop section ── */
+    .section { border-top: 1px solid var(--border); }
+    .section-in { max-width: 72rem; margin: 0 auto; padding: 5rem 1.5rem; }
+    .section-in h2 { font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: .75rem; }
+    .section-in .sub { color: var(--dim); text-align: center; margin-bottom: 3.5rem; max-width: 32rem; margin-left: auto; margin-right: auto; }
+
+    .loop-ring { width: 360px; height: 360px; margin: 0 auto; position: relative; }
+    .loop-svg { position: absolute; inset: 0; pointer-events: none; }
+
+    .agent-c { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+    .agent-ico {
+      width: 60px; height: 60px; margin: 0 auto .5rem;
+      border-radius: 50%; border: 1px solid var(--faint); background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .agent-ico svg { width: 26px; height: 26px; stroke: var(--dim); fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+    .agent-ico img { width: 30px; height: 30px; }
+    .agent-lbl { font-size: .65rem; color: var(--faint); text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
+
+    .nd { position: absolute; text-align: center; width: 90px; transform: translate(-50%,-50%); }
+    .nd-ico {
+      width: 50px; height: 50px; margin: 0 auto .4rem;
+      border-radius: 50%; border: 1px solid var(--faint); background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s;
+    }
+    .nd:hover .nd-ico { border-color: var(--dim); box-shadow: 0 0 20px rgba(59,130,246,0.06); }
+    .nd-ico svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .nd b { display: block; font-size: .8rem; font-weight: 600; color: var(--text); }
+    .nd small { font-size: .7rem; color: var(--dim); }
+
+    .nd.p-top    { top: 2%;  left: 50%; }
+    .nd.p-right  { top: 50%; left: 98%; }
+    .nd.p-bottom { top: 98%; left: 50%; }
+    .nd.p-left   { top: 50%; left: 2%;  }
+
+    /* ── How it works ── */
+    .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px,100%), 1fr)); gap: 1.5rem; }
+    .how-card {
+      background: var(--card); border: 1px solid var(--faint);
+      border-radius: .75rem; padding: 1.5rem;
+      transition: all .3s;
+    }
+    .how-card:hover { box-shadow: 0 0 20px rgba(59,130,246,0.06), 0 0 0 1px rgba(59,130,246,0.15); }
+    .how-card .ico { font-size: 1.5rem; margin-bottom: .75rem; }
+    .how-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: .4rem; }
+    .how-card p { font-size: .875rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── File previews ── */
+    .files-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px,100%), 1fr)); gap: 1.25rem; }
+    .file-card {
+      background: var(--card); border: 1px solid var(--faint);
+      border-radius: .75rem; overflow: hidden;
+      transition: all .3s;
+    }
+    .file-card:hover { box-shadow: 0 0 20px rgba(59,130,246,0.06), 0 0 0 1px rgba(59,130,246,0.15); }
+    .file-hdr {
+      padding: .75rem 1.25rem; border-bottom: 1px solid var(--faint);
+      display: flex; align-items: center; gap: .5rem;
+      font-family: var(--mono); font-size: .8rem; font-weight: 600; color: var(--muted);
+    }
+    .file-hdr span { font-size: 1rem; }
+    .file-card pre {
+      margin: 0; padding: 1rem 1.25rem; font-family: var(--mono);
+      font-size: .78rem; line-height: 1.6; color: var(--muted); overflow-x: auto;
+    }
+    .file-desc { padding: .75rem 1.25rem; font-size: .8rem; color: var(--dim); line-height: 1.5; border-top: 1px solid var(--faint); }
+
+    /* ── Dashboard form section ── */
+    .dash-sec {
+      border-top: 1px solid var(--border);
+      background: radial-gradient(ellipse at top, var(--accent-dim) 0%, transparent 60%);
+    }
+    .dash-in { max-width: 72rem; margin: 0 auto; padding: 5rem 1.5rem; text-align: center; }
+    .dash-in h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: .75rem; }
+    .dash-in .sub { color: var(--dim); margin-bottom: 2rem; max-width: 28rem; margin-left: auto; margin-right: auto; }
+    .dash-form { display: flex; gap: .5rem; justify-content: center; max-width: 24rem; margin: 0 auto; }
+    .dash-form input {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--faint);
+      color: #fff; padding: .7rem 1rem; border-radius: .5rem; font-size: .9rem;
+      flex: 1; outline: none; font-family: var(--mono);
+    }
+    .dash-form input::placeholder { color: var(--faint); }
+    .dash-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+
+    /* ── Footer ── */
+    .foot {
+      border-top: 1px solid var(--border); padding: 2rem 1.5rem;
+      max-width: 72rem; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: .875rem; color: var(--faint);
+    }
+    .foot a { color: var(--dim); transition: color .15s; }
+    .foot a:hover { color: var(--muted); }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .hero { padding-top: 4rem; }
+      .hero-btns { flex-direction: column; }
+      .how-grid { grid-template-columns: 1fr; }
+      .loop-ring { width: 290px; height: 290px; }
+      .nd-ico { width: 42px; height: 42px; }
+      .agent-ico { width: 48px; height: 48px; }
+      .dash-form { flex-direction: column; }
+      .foot { flex-direction: column; gap: .75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav"><div class="nav-in">
+  <a href="/" class="brand"><span class="brand-ico">🔬</span>Auto<em>Research</em>Studio</a>
+  <div class="nav-r">
+    <a href="https://github.com/edoardoted99/autoresearchstudio" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/autoresearchstudio/" target="_blank">PyPI</a>
+  </div>
+</div></nav>
+
+<!-- Hero -->
+<section class="hero-wrap"><div class="hero">
+  <h1>Auto<em>Research</em>Studio</h1>
+  <p class="sub">
+    Write a <code>program.md</code> that describes your research goal and point an AI agent at it.
+    It modifies your code, trains, evaluates, keeps or discards &mdash; and repeats, while you sleep.
+  </p>
+  <div class="hero-btns">
+    <a href="https://github.com/edoardoted99/autoresearchstudio" class="btn-primary" target="_blank">Get started</a>
+    <form method="get" action="/" class="dash-form" style="margin:0">
+      <input type="text" name="key" placeholder="ars_xxxxxxxxxxxx" required>
+      <button type="submit" class="btn-outline" style="padding:.7rem 1.5rem;font-size:.9rem">Dashboard</button>
     </form>
-</div>
-{% endblock %}
+  </div>
+
+  <div class="term-wrap"><div class="term">
+    <div class="term-bar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <span>terminal</span>
+    </div>
+    <pre><span class="c"># Install and init your project</span>
+<span class="w">$ pip install autoresearchstudio</span>
+<span class="w">$ ars init</span>
+<span class="a">Created autoresearch.yaml</span>
+<span class="a">Created program.md</span>
+
+<span class="c"># Generate a dashboard API key</span>
+<span class="w">$ ars key</span>
+<span class="g">✓ API key saved to autoresearch.yaml</span>
+
+<span class="c"># Launch Claude Code — it takes over from here</span>
+<span class="w">$ claude</span>
+<span class="a">╭──────────────────────────────────────╮</span>
+<span class="a">│  Claude Code                         │</span>
+<span class="a">╰──────────────────────────────────────╯</span>
+
+<span class="w">&gt;</span> Hi Claude, read program.md and start the experiment.
+
+<span class="c">Claude: Setting up run...</span>
+<span class="a">  ars setup --tag v1</span>
+<span class="a">  ars run -d "baseline"</span>
+<span class="a">  accuracy: 95.40</span>
+<span class="a">  ars judge</span>
+<span class="gw">  KEEP</span> <span class="c">— baseline accepted</span>
+
+<span class="c">Claude: Trying dropout + cosine lr schedule...</span>
+<span class="a">  ars run -d "add dropout + cosine lr"</span>
+<span class="a">  accuracy: 97.20</span>
+<span class="a">  ars judge</span>
+<span class="gw">  KEEP</span> <span class="c">— 95.40 → 97.20</span>
+
+<span class="c">Claude: Testing gelu activation...</span>
+<span class="a">  ars run -d "replace relu with gelu"</span>
+<span class="a">  accuracy: 96.80</span>
+<span class="a">  ars judge</span>
+<span class="r">  DISCARD</span> <span class="c">— regressed, reverted</span>
+
+<span class="c">Claude: Continuing to next experiment...</span></pre>
+  </div></div>
+</div></section>
+
+<!-- The loop -->
+<section class="section"><div class="section-in">
+  <h2>The loop</h2>
+  <p class="sub">The agent repeats this cycle autonomously until your model converges.</p>
+  <div class="loop-ring">
+    <svg class="loop-svg" viewBox="0 0 360 360">
+      <defs>
+        <marker id="ah" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0,7 2.5,0 5" fill="#4b5563"/>
+        </marker>
+      </defs>
+      <!-- ring -->
+      <circle cx="180" cy="180" r="118" fill="none" stroke="#1f2937" stroke-width="1"/>
+      <!-- arrows on the ring: arcs from node to node (clockwise) -->
+      <!-- top→right: arc from ~(220,65) to ~(293,140) -->
+      <path d="M 222 68 A 118 118 0 0 1 290 138" fill="none" stroke="#374151" stroke-width="1.2" marker-end="url(#ah)"/>
+      <!-- right→bottom: arc from ~(293,220) to ~(222,293) -->
+      <path d="M 292 222 A 118 118 0 0 1 222 292" fill="none" stroke="#374151" stroke-width="1.2" marker-end="url(#ah)"/>
+      <!-- bottom→left: arc from ~(138,293) to ~(68,222) -->
+      <path d="M 138 292 A 118 118 0 0 1 68 222" fill="none" stroke="#374151" stroke-width="1.2" marker-end="url(#ah)"/>
+      <!-- left→top: arc from ~(68,138) to ~(138,68) -->
+      <path d="M 68 138 A 118 118 0 0 1 138 68" fill="none" stroke="#374151" stroke-width="1.2" marker-end="url(#ah)"/>
+    </svg>
+    <div class="agent-c">
+      <div class="agent-ico">
+        <img src="/static/claude-icon.png" alt="Claude">
+      </div>
+      <div class="agent-lbl">claude</div>
+    </div>
+    <div class="nd p-top">
+      <div class="nd-ico"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+      <b>Modify</b><small>AI edits code</small>
+    </div>
+    <div class="nd p-right">
+      <div class="nd-ico"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+      <b>Train</b><small>Runs experiment</small>
+    </div>
+    <div class="nd p-bottom">
+      <div class="nd-ico"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h8"/><path d="M17 14l3 3-3 3"/></svg></div>
+      <b>Judge</b><small>LLM evaluates</small>
+    </div>
+    <div class="nd p-left">
+      <div class="nd-ico" style="border-color:rgba(34,197,94,0.35)"><svg viewBox="0 0 24 24" style="stroke:#22c55e"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <b>Keep</b><small>or discard</small>
+    </div>
+  </div>
+</div></section>
+
+<!-- The files -->
+<section class="section" id="how"><div class="section-in">
+  <h2>Three files, full autonomy</h2>
+  <p class="sub">You write <code>program.md</code> and <code>autoresearch.yaml</code>. The agent edits <code>train.py</code>.</p>
+  <div class="files-grid">
+    <div class="file-card">
+      <div class="file-hdr"><span>📝</span> program.md</div>
+      <pre>You are an ML researcher optimizing a
+neural network for image classification.
+
+Goal: maximize accuracy on the test set.
+
+Strategy:
+- Try architectural changes first
+- Then tune hyperparameters
+- Prefer simpler solutions
+- Keep changes small and focused</pre>
+      <div class="file-desc">The instructions for the AI agent. This is the file <strong>you</strong> iterate on.</div>
+    </div>
+    <div class="file-card">
+      <div class="file-hdr"><span>⚙️</span> autoresearch.yaml</div>
+      <pre>project:
+  name: mnist-research
+  goal: Maximize accuracy
+
+files:
+  editable: [train.py]
+  readonly: [prepare.py]
+
+experiment:
+  run_command: python train.py
+  timeout: 120
+
+metric:
+  name: accuracy
+  pattern: "Accuracy: ([0-9.]+)"
+  direction: maximize</pre>
+      <div class="file-desc">Config: training command, metric, time budget. One file, no boilerplate.</div>
+    </div>
+    <div class="file-card">
+      <div class="file-hdr"><span>🧪</span> train.py</div>
+      <pre>import torch
+import torch.nn as nn
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(784, 128)
+        self.fc2 = nn.Linear(128, 10)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        return self.fc2(x)
+
+# training loop ...
+print(f"Accuracy: {acc:.2f}")</pre>
+      <div class="file-desc">The agent modifies this file. Every change is a git commit — keeps are merged, discards are reverted.</div>
+    </div>
+  </div>
+</div></section>
+
+<!-- Sleep -->
+<section class="section"><div style="padding:4rem 1.5rem;text-align:center">
+  <div style="font-size:3rem;margin-bottom:.75rem">😴💤</div>
+  <p style="font-size:1.1rem;color:var(--muted);max-width:24rem;margin:0 auto;line-height:1.6">Now go to sleep.<br>Claude will take it from here.</p>
+</div></section>
+
+<!-- Footer -->
+<footer class="foot">
+  <span>AutoResearchStudio &mdash; inspired by <a href="https://github.com/karpathy/autoresearch" target="_blank">Karpathy's autoresearch</a></span>
+  <a href="https://github.com/edoardoted99/autoresearchstudio" target="_blank">GitHub</a>
+</footer>
+
+</body>
+</html>

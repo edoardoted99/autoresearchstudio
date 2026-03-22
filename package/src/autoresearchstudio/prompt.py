@@ -15,9 +15,10 @@ To set up a new experiment run, work with the user to:
 
 1. **Agree on a run tag**: propose a tag based on today's date (e.g. `mar21`). The branch `autoresearch/<tag>` must not already exist — this is a fresh run.
 2. **Set up the run**: `ars setup --tag <tag>` — creates the branch and initializes tracking.
-3. **Read the in-scope files**: The repo is small. Read these files for full context:
+3. **Dashboard API key**: Check `autoresearch.yaml` — if the `api.key` field is `null`, run `ars key` to generate one. This connects the run to the live dashboard so experiments are visible in real time. Skip if a key is already set.
+4. **Read the in-scope files**: The repo is small. Read these files for full context:
 {files_to_read}
-4. **Confirm and go**: Confirm setup looks good.
+5. **Confirm and go**: Confirm setup looks good.
 
 Once you get confirmation, kick off the experimentation.
 

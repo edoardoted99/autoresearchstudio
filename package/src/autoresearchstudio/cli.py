@@ -240,6 +240,8 @@ def cmd_run(args):
         started_at=datetime.now(timezone.utc).isoformat(),
     )
 
+    tracker.sync(exp_id)
+
     print(f"Run #{exp_num} started | commit: {commit_hash} | timeout: {timeout}s")
     print(f"Command: {command}")
     print(f"Log: {log_file}")
@@ -497,6 +499,59 @@ def cmd_status(args):
     tracker.close()
 
 
+def cmd_key(args):
+    """Generate a new API key and save it to autoresearch.yaml."""
+    import requests as req
+
+    config = _load_config_or_exit()
+    endpoint = config.api.endpoint.rstrip("/")
+    # endpoint is like https://autoresearch.studio/api
+    # keys endpoint is at /api/keys/
+    base_url = endpoint.rsplit("/api", 1)[0]
+    url = f"{base_url}/api/keys/"
+
+    name = config.project.name or "cli"
+
+    try:
+        resp = req.post(url, json={"name": name}, timeout=10)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"Error: could not generate key: {e}")
+        sys.exit(1)
+
+    key = resp.json()["key"]
+
+    # Write key into autoresearch.yaml
+    with open(CONFIG_FILENAME) as f:
+        raw = f.read()
+
+    # Replace existing key line or add it
+    import re as re_mod
+    if re_mod.search(r"^(\s*key:)", raw, re_mod.MULTILINE):
+        raw = re_mod.sub(r"^(\s*key:).*", r"\1 " + key, raw, flags=re_mod.MULTILINE)
+    else:
+        raw = raw.rstrip() + f"\n  key: {key}\n"
+
+    with open(CONFIG_FILENAME, "w") as f:
+        f.write(raw)
+
+    print(f"API key: {key}")
+    print(f"Saved to {CONFIG_FILENAME}")
+    print(f"Dashboard: {base_url}/?key={key}")
+
+    # Sync ALL experiments (including running) with the new key
+    config = load_config()  # reload with new key
+    tracker = _load_tracker(config)
+    all_exps = tracker.get_all()
+    unsynced = [e for e in all_exps if e.synced_at is None]
+    if unsynced:
+        for e in unsynced:
+            tracker.sync(e.id)
+        import time
+        time.sleep(2)
+        print(f"Synced {len(unsynced)} experiment(s) to dashboard.")
+
+
 def cmd_generate(args):
     """Regenerate program.md from current config."""
     config = _load_config_or_exit()
@@ -570,6 +625,9 @@ def main():
     # ars status
     subparsers.add_parser("status", help="Show current project state")
 
+    # ars key
+    subparsers.add_parser("key", help="Generate a new API key and save to config")
+
     # ars generate
     p_gen = subparsers.add_parser("generate", help="Regenerate program.md from config")
     p_gen.add_argument("--output", "-o", default=None,
@@ -589,6 +647,7 @@ def main():
         "judge": cmd_judge,
         "results": cmd_results,
         "status": cmd_status,
+        "key": cmd_key,
         "generate": cmd_generate,
     }
 

@@ -3,6 +3,7 @@
 
 {% block header_right %}
 <span class="key-info">{{ api_key.name }} &middot; {{ api_key.key|truncatechars:16 }}</span>
+<a href="{% url 'logout' %}" style="margin-left: 12px; font-size: 13px; color: var(--text-dim);">Change key</a>
 {% endblock %}
 
 {% block content %}

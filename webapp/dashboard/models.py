@@ -47,6 +47,7 @@ class Experiment(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="running")
     description = models.TextField(blank=True, default="")
     diff = models.TextField(blank=True, default="")
+    timeout_seconds = models.FloatField(null=True, blank=True)
     duration_seconds = models.FloatField(null=True, blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)

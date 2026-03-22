@@ -1,6 +1,6 @@
 project:
-  name: mnist-autoresearch
-  description: Autonomous optimization of a CNN for MNIST digit classification.
+  name: fashion-mnist-autoresearch
+  description: Autonomous optimization of a CNN for Fashion-MNIST clothing classification.
   goal: Get the highest val_accuracy.
 
 files:
@@ -11,12 +11,13 @@ files:
 
 experiment:
   run_command: python train.py
-  timeout: 60
+  timeout: 120
   setup_command: python prepare.py
   log_file: run.log
   constraints: >
     Keep the model small enough to train on CPU in the time budget.
     A GPU is not required for this example.
+    Fashion-MNIST is harder than MNIST — expect lower accuracy (~90% is a good baseline).
 
 metric:
   name: val_accuracy
@@ -36,5 +37,5 @@ judge:
     Removing complexity while keeping accuracy is a great outcome.
 
 api:
-  key: ars_1a2ef76fb77572ee122b5d4b6b9b75a5f6568706332eb3cc
+  key: ars_df2db5ddceec1f669f1b7e6676e9a49bc710ad1d01fdfe97
   endpoint: https://autoresearch.studio/api

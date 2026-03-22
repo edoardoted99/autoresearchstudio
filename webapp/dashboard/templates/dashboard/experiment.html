@@ -1,6 +1,11 @@
 {% extends "dashboard/base.html" %}
 {% block title %}Experiment #{{ experiment.experiment_number }} — autoresearch.studio{% endblock %}
 
+{% block header_right %}
+<span class="key-info">{{ api_key.name }}</span>
+<a href="{% url 'logout' %}" style="margin-left: 12px; font-size: 13px; color: var(--text-dim);">Change key</a>
+{% endblock %}
+
 {% block content %}
 <a href="{% url 'project_detail' project.id %}?run={{ experiment.run_tag }}" class="back-link">&larr; {{ project.name }} / {{ experiment.run_tag }}</a>
 

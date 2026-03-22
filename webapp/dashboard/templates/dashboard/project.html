@@ -3,6 +3,7 @@
 
 {% block header_right %}
 <span class="key-info">{{ api_key.name }}</span>
+<a href="{% url 'logout' %}" style="margin-left: 12px; font-size: 13px; color: var(--text-dim);">Change key</a>
 {% endblock %}
 
 {% block content %}
@@ -37,6 +38,56 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Running experiment progress bar -->
+{% if running_exp %}
+<div class="card" id="progress-card" hx-get="{% url 'project_detail' project.id %}{% if current_run %}?run={{ current_run }}{% endif %}" hx-trigger="every 5s" hx-select="#progress-card" hx-swap="outerHTML">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+        <span class="badge badge-running" style="display: inline-flex; align-items: center; gap: 6px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); display: inline-block; animation: pulse 1.5s infinite;"></span>
+            Running
+        </span>
+        <span style="font-weight: 600;">Experiment #{{ running_exp.experiment_number }}</span>
+        {% if running_exp.description %}<span style="color: var(--text-dim); font-size: 13px;">— {{ running_exp.description }}</span>{% endif %}
+    </div>
+    {% if running_exp.timeout_seconds and running_exp.started_at %}
+    <div style="position: relative; height: 24px; background: var(--bg); border-radius: 6px; overflow: hidden; border: 1px solid var(--border);">
+        <div id="progress-fill" style="height: 100%; background: linear-gradient(90deg, rgba(210,153,34,0.4), rgba(210,153,34,0.7)); border-radius: 6px; transition: width 1s linear; width: 0%;"></div>
+        <span id="progress-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap;"></span>
+    </div>
+    <script>
+    (function() {
+        const startedAt = new Date("{{ running_exp.started_at|date:'c' }}");
+        const timeout = {{ running_exp.timeout_seconds }};
+        const fill = document.getElementById('progress-fill');
+        const label = document.getElementById('progress-label');
+        function update() {
+            const elapsed = (Date.now() - startedAt.getTime()) / 1000;
+            const pct = Math.min(100, (elapsed / timeout) * 100);
+            fill.style.width = pct + '%';
+            if (pct > 85) fill.style.background = 'linear-gradient(90deg, rgba(248,81,73,0.4), rgba(248,81,73,0.7))';
+            const elapsedInt = Math.floor(elapsed);
+            if (elapsed >= timeout) {
+                fill.style.width = '100%';
+                fill.style.background = 'linear-gradient(90deg, rgba(248,81,73,0.4), rgba(248,81,73,0.7))';
+                label.textContent = 'Overtime — ' + elapsedInt + 's / ' + timeout + 's';
+            } else {
+                const remaining = Math.ceil(timeout - elapsed);
+                label.textContent = elapsedInt + 's / ' + timeout + 's (' + remaining + 's remaining)';
+            }
+        }
+        update();
+        setInterval(update, 1000);
+    })();
+    </script>
+    {% else %}
+    <div style="color: var(--text-dim); font-size: 13px;">
+        Started {{ running_exp.started_at|timesince }} ago
+        {% if running_exp.timeout_seconds %}· timeout: {{ running_exp.timeout_seconds }}s{% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
 
 <!-- Run filter tabs -->
 {% if run_tags|length > 1 %}
@@ -76,6 +127,31 @@
 const chartData = {{ chart_data_json|safe }};
 const metricName = "{{ metric_name }}";
 
+// Plugin: rotated annotations on kept points
+const keepAnnotationPlugin = {
+    id: 'keepAnnotations',
+    afterDatasetsDraw(chart) {
+        const ds = chart.data.datasets[1]; // "Kept"
+        if (!ds) return;
+        const meta = chart.getDatasetMeta(1);
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillStyle = 'rgba(63, 185, 80, 0.75)';
+        ctx.textAlign = 'left';
+        meta.data.forEach((pt, i) => {
+            const desc = ds.data[i].description;
+            if (!desc) return;
+            ctx.save();
+            ctx.translate(pt.x + 10, pt.y - 10);
+            ctx.rotate(-Math.PI / 6);
+            ctx.fillText(desc, 0, 0);
+            ctx.restore();
+        });
+        ctx.restore();
+    }
+};
+
 const ctx = document.getElementById('progressChart').getContext('2d');
 new Chart(ctx, {
     type: 'scatter',
@@ -84,8 +160,8 @@ new Chart(ctx, {
             {
                 label: 'Discarded',
                 data: chartData.discard_points,
-                backgroundColor: 'rgba(139, 148, 158, 0.3)',
-                borderColor: 'rgba(139, 148, 158, 0.5)',
+                backgroundColor: 'rgba(139, 148, 158, 0.15)',
+                borderColor: 'rgba(139, 148, 158, 0.25)',
                 pointRadius: 4,
                 pointHoverRadius: 6,
                 order: 3,
@@ -95,8 +171,8 @@ new Chart(ctx, {
                 data: chartData.keep_points,
                 backgroundColor: '#3fb950',
                 borderColor: '#2ea043',
-                pointRadius: 7,
-                pointHoverRadius: 9,
+                pointRadius: 6,
+                pointHoverRadius: 8,
                 pointStyle: 'circle',
                 order: 1,
             },
@@ -104,12 +180,13 @@ new Chart(ctx, {
                 label: 'Running Best',
                 data: chartData.running_best,
                 type: 'line',
-                borderColor: '#2ea043',
-                backgroundColor: 'rgba(46, 160, 67, 0.1)',
+                borderColor: 'rgba(46, 160, 67, 0.6)',
+                backgroundColor: 'rgba(46, 160, 67, 0.05)',
                 borderWidth: 2,
-                fill: false,
-                stepped: 'after',
+                fill: true,
+                stepped: false,
                 pointRadius: 0,
+                tension: 0,
                 order: 2,
             }
         ]
@@ -118,10 +195,17 @@ new Chart(ctx, {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+            title: {
+                display: true,
+                text: `Autoresearch Progress: ${chartData.total} Experiments, ${chartData.keeps} Kept Improvements`,
+                color: '#e6edf3',
+                font: { size: 14, weight: '600' },
+                padding: { bottom: 16 }
+            },
             tooltip: {
                 callbacks: {
-                    label: function(ctx) {
-                        const point = ctx.raw;
+                    label: function(context) {
+                        const point = context.raw;
                         let label = metricName + ': ' + (point.y !== null ? point.y.toFixed(6) : 'N/A');
                         if (point.description) label += ' — ' + point.description;
                         return label;
@@ -144,7 +228,8 @@ new Chart(ctx, {
                 ticks: { color: '#8b949e' }
             }
         }
-    }
+    },
+    plugins: [keepAnnotationPlugin]
 });
 
 // --- Branch Tree (SVG) ---
@@ -159,78 +244,95 @@ function renderTree(nodes, container) {
     const NODE_W = 160;
     const NODE_H = 56;
     const TRUNK_GAP_X = 180;
-    const BRANCH_GAP_Y = 80;
+    const BRANCH_GAP_Y = 66;
+    const BRANCH_OFFSET_X = 24;
     const PAD = 20;
 
-    // Separate trunk (keeps) and branches (discard/crash)
+    // Separate trunk (keeps) and branches
     const trunk = nodes.filter(n => n.is_trunk);
     const branches = nodes.filter(n => !n.is_trunk);
 
-    // Assign positions: trunk is horizontal, branches go down
+    // Position trunk nodes horizontally, keyed by node ID
     const positions = {};
     trunk.forEach((node, i) => {
-        positions[node.commit] = { x: PAD + i * TRUNK_GAP_X, y: PAD };
+        positions[node.id] = { x: PAD + i * TRUNK_GAP_X, y: PAD };
     });
 
-    // Group branches by parent
+    // Group branches by parent_id (the keep experiment they branch off)
     const branchesByParent = {};
     branches.forEach(n => {
-        const p = n.parent_commit;
-        if (!branchesByParent[p]) branchesByParent[p] = [];
-        branchesByParent[p].push(n);
+        const pid = n.parent_id;
+        if (pid == null) return;
+        if (!branchesByParent[pid]) branchesByParent[pid] = [];
+        branchesByParent[pid].push(n);
     });
 
+    // Position branches: stacked vertically below their parent keep
     let maxBranchY = PAD;
-    for (const [parent, children] of Object.entries(branchesByParent)) {
-        const parentPos = positions[parent];
+    for (const [parentId, children] of Object.entries(branchesByParent)) {
+        const parentPos = positions[parentId];
         if (!parentPos) continue;
         children.forEach((child, i) => {
             const y = parentPos.y + BRANCH_GAP_Y * (i + 1);
-            positions[child.commit] = { x: parentPos.x, y: y };
+            positions[child.id] = { x: parentPos.x + BRANCH_OFFSET_X, y };
             maxBranchY = Math.max(maxBranchY, y);
         });
     }
 
-    // Handle orphan branches (parent not in positions)
+    // Handle orphans (no parent_id or parent not found)
     branches.forEach(n => {
-        if (!positions[n.commit]) {
+        if (!positions[n.id]) {
             maxBranchY += BRANCH_GAP_Y;
-            positions[n.commit] = { x: PAD, y: maxBranchY };
+            positions[n.id] = { x: PAD + BRANCH_OFFSET_X, y: maxBranchY };
         }
     });
 
-    const svgW = PAD * 2 + Math.max(trunk.length, 1) * TRUNK_GAP_X;
+    const svgW = PAD * 2 + Math.max(trunk.length, 1) * TRUNK_GAP_X + BRANCH_OFFSET_X;
     const svgH = maxBranchY + NODE_H + PAD * 2;
 
     let svg = `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, sans-serif;">`;
 
-    // Draw edges
-    // Trunk edges
+    // Trunk edges (horizontal green lines between keeps)
     for (let i = 1; i < trunk.length; i++) {
-        const from = positions[trunk[i - 1].commit];
-        const to = positions[trunk[i].commit];
+        const from = positions[trunk[i - 1].id];
+        const to = positions[trunk[i].id];
         if (from && to) {
             svg += `<line x1="${from.x + NODE_W}" y1="${from.y + NODE_H / 2}" x2="${to.x}" y2="${to.y + NODE_H / 2}" stroke="#2ea043" stroke-width="2.5"/>`;
         }
     }
 
-    // Branch edges
-    branches.forEach(n => {
-        const parentPos = positions[n.parent_commit];
-        const childPos = positions[n.commit];
-        if (parentPos && childPos) {
-            const x1 = parentPos.x + NODE_W / 2;
-            const y1 = parentPos.y + NODE_H;
-            const x2 = childPos.x + NODE_W / 2;
-            const y2 = childPos.y;
-            svg += `<path d="M${x1},${y1} C${x1},${y1 + 20} ${x2},${y2 - 20} ${x2},${y2}" stroke="${n.status === 'crash' ? '#f85149' : '#30363d'}" stroke-width="1.5" fill="none" stroke-dasharray="${n.status === 'crash' ? '4,3' : 'none'}"/>`;
-        }
-    });
+    // Branch edges: vertical rail from parent + horizontal stubs
+    for (const [parentId, children] of Object.entries(branchesByParent)) {
+        const parentPos = positions[parentId];
+        if (!parentPos) continue;
+
+        const railX = parentPos.x + BRANCH_OFFSET_X / 2 + 4;
+        const lastChild = children[children.length - 1];
+        const lastChildPos = positions[lastChild.id];
+        if (!lastChildPos) continue;
+
+        // Vertical rail
+        svg += `<line x1="${railX}" y1="${parentPos.y + NODE_H}" x2="${railX}" y2="${lastChildPos.y + NODE_H / 2}" stroke="#30363d" stroke-width="1.5"/>`;
+
+        // Horizontal stubs + junction dots
+        children.forEach(child => {
+            const cp = positions[child.id];
+            if (!cp) return;
+            const cy = cp.y + NODE_H / 2;
+            const color = child.status === 'crash' ? '#f85149' : '#484f58';
+            const dash = child.status === 'crash' ? ' stroke-dasharray="4,3"' : '';
+            svg += `<line x1="${railX}" y1="${cy}" x2="${cp.x}" y2="${cy}" stroke="${color}" stroke-width="1.5"${dash}/>`;
+            svg += `<circle cx="${railX}" cy="${cy}" r="3" fill="${color}"/>`;
+        });
+    }
 
     // Draw nodes
     nodes.forEach(n => {
-        const pos = positions[n.commit];
+        const pos = positions[n.id];
         if (!pos) return;
+
+        const isOnTrunk = n.is_trunk;
+        const w = isOnTrunk ? NODE_W : NODE_W - BRANCH_OFFSET_X;
 
         const colors = {
             keep: { bg: 'rgba(63,185,80,0.15)', border: '#3fb950', text: '#3fb950' },
@@ -241,10 +343,10 @@ function renderTree(nodes, container) {
         const c = colors[n.status] || colors.discard;
 
         svg += `<g style="cursor: pointer;" onclick="window.location='/experiment/${n.id}/'">`;
-        svg += `<rect x="${pos.x}" y="${pos.y}" width="${NODE_W}" height="${NODE_H}" rx="8" fill="${c.bg}" stroke="${c.border}" stroke-width="1.5"/>`;
+        svg += `<rect x="${pos.x}" y="${pos.y}" width="${w}" height="${NODE_H}" rx="8" fill="${c.bg}" stroke="${c.border}" stroke-width="1.5"/>`;
         svg += `<text x="${pos.x + 8}" y="${pos.y + 18}" fill="${c.text}" font-size="12" font-weight="600">#${n.number} ${n.commit}</text>`;
         svg += `<text x="${pos.x + 8}" y="${pos.y + 34}" fill="#e6edf3" font-size="11">${n.metric !== null ? n.metric.toFixed(4) : '—'}</text>`;
-        svg += `<text x="${pos.x + 8}" y="${pos.y + 48}" fill="#8b949e" font-size="10">${n.description.substring(0, 22)}</text>`;
+        svg += `<text x="${pos.x + 8}" y="${pos.y + 48}" fill="#8b949e" font-size="10">${(n.description || '').substring(0, 20)}</text>`;
         svg += `</g>`;
     });
 

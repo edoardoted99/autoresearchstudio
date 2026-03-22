@@ -70,6 +70,7 @@ def experiment_create(request):
             "status": data.get("status", "running"),
             "description": data.get("description", ""),
             "diff": data.get("diff", ""),
+            "timeout_seconds": data.get("timeout_seconds"),
             "duration_seconds": data.get("duration_seconds"),
             "started_at": started_at,
             "finished_at": finished_at,
@@ -83,3 +84,24 @@ def experiment_create(request):
         "experiment_number": exp.experiment_number,
         "status": exp.status,
     }, status=201 if created else 200)
+
+
+@csrf_exempt
+@require_POST
+def key_create(request):
+    """Generate a new API key.
+
+    POST /api/keys/
+    Body: {"name": "my-project"}  (optional)
+    """
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        data = {}
+
+    name = data.get("name", "cli")
+    api_key = ApiKey.objects.create(name=name)
+
+    return JsonResponse({
+        "key": api_key.key,
+    }, status=201)
