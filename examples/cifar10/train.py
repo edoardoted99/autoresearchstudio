@@ -70,6 +70,7 @@ def main():
     print(f"Parameters: {num_params:,}")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15000)
     train_loader = make_dataloader(train_images, train_labels, BATCH_SIZE)
 
     # Training loop (time-budgeted)
@@ -82,12 +83,22 @@ def main():
         t0 = time.time()
 
         x, y = next(train_loader)
+
+        # Simple data augmentation: random horizontal flip + random crop
+        if torch.rand(1).item() > 0.5:
+            x = torch.flip(x, [3])
+        # Random shift by up to 4 pixels
+        shift_x = torch.randint(-4, 5, (1,)).item()
+        shift_y = torch.randint(-4, 5, (1,)).item()
+        x = torch.roll(x, shifts=(shift_y, shift_x), dims=(2, 3))
+
         logits = model(x)
         loss = F.cross_entropy(logits, y)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         dt = time.time() - t0
         total_training_time += dt
