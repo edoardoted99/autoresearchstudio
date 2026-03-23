@@ -242,8 +242,7 @@ def cmd_init(args):
 
     print("\nDone! Next steps:")
     print("  1. (optional) Customize train.py / prepare.py / autoresearch.yaml for your task")
-    print("  2. ars setup --tag <tag>        # create branch + download data")
-    print("  3. Tell Claude: \"read program.md and start the experiments\"")
+    print("  2. Tell Claude: \"read program.md and start the experiments\"")
 
 
 def cmd_setup(args):
