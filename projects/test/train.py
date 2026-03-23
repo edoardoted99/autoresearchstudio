@@ -16,6 +16,7 @@ Usage: python train.py
 
 import time
 import math
+import random
 
 import torch
 import torch.nn as nn
@@ -25,6 +26,23 @@ from prepare import TIME_BUDGET, load_data, make_dataloader, evaluate_accuracy
 
 # ── Model (modify this) ───────────────────────────────────────────
 
+def augment_batch(x):
+    """Random shift augmentation for MNIST."""
+    shift = 3
+    n, c, h, w = x.shape
+    dx = random.randint(-shift, shift)
+    dy = random.randint(-shift, shift)
+    x_aug = torch.zeros_like(x)
+    src_x1 = max(0, dx)
+    src_x2 = min(w, w + dx)
+    src_y1 = max(0, dy)
+    src_y2 = min(h, h + dy)
+    dst_x1 = max(0, -dx)
+    dst_y1 = max(0, -dy)
+    x_aug[:, :, dst_y1:dst_y1+(src_y2-src_y1), dst_x1:dst_x1+(src_x2-src_x1)] = x[:, :, src_y1:src_y2, src_x1:src_x2]
+    return x_aug
+
+
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
@@ -32,14 +50,17 @@ class Net(nn.Module):
         self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
         self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 64, 3, padding=1)
+        self.bn3 = nn.BatchNorm2d(64)
         self.pool = nn.MaxPool2d(2, 2)
         self.dropout = nn.Dropout(0.25)
-        self.fc1 = nn.Linear(64 * 7 * 7, 128)
+        self.fc1 = nn.Linear(64 * 3 * 3, 128)
         self.fc2 = nn.Linear(128, 10)
 
     def forward(self, x):
-        x = self.pool(F.relu(self.bn1(self.conv1(x))))
-        x = self.pool(F.relu(self.bn2(self.conv2(x))))
+        x = self.pool(F.relu(self.bn1(self.conv1(x))))   # 28->14
+        x = self.pool(F.relu(self.bn2(self.conv2(x))))   # 14->7
+        x = self.pool(F.relu(self.bn3(self.conv3(x))))   # 7->3
         x = x.view(x.size(0), -1)
         x = self.dropout(x)
         x = F.relu(self.fc1(x))
@@ -81,6 +102,7 @@ def main():
         t0 = time.time()
 
         x, y = next(train_loader)
+        x = augment_batch(x)
         logits = model(x)
         loss = F.cross_entropy(logits, y)
 
