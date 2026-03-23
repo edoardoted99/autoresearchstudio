@@ -9,6 +9,7 @@ def generate_api_key():
 class ApiKey(models.Model):
     key = models.CharField(max_length=64, unique=True, default=generate_api_key)
     name = models.CharField(max_length=255, help_text="Project name for this key")
+    config = models.JSONField(default=dict, blank=True, help_text="Project configuration from autoresearch.yaml")
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 

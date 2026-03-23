@@ -186,7 +186,7 @@ class ApiSync:
         self._pending_threads: list[threading.Thread] = []
 
     def sync_experiment(self, experiment: Experiment, db_path: str,
-                        project_name: str = "") -> bool:
+                        project_name: str = "", config: dict = None) -> bool:
         """POST experiment data to the API. Non-blocking (runs in a thread)."""
         payload = {
             "project_name": project_name,
@@ -205,6 +205,8 @@ class ApiSync:
             "started_at": experiment.started_at,
             "finished_at": experiment.finished_at,
         }
+        if config:
+            payload["config"] = config
         exp_id = experiment.id
 
         def _post():
@@ -274,7 +276,16 @@ class Tracker:
         if self.api:
             exp = self.local.get_experiment(exp_id)
             if exp:
-                self.api.sync_experiment(exp, self.db_path, self.config.project.name)
+                config_dict = {
+                    "goal": self.config.project.goal,
+                    "metric_name": self.config.metric.name,
+                    "metric_direction": self.config.metric.direction,
+                    "timeout": self.config.experiment.timeout,
+                    "run_command": self.config.experiment.run_command,
+                    "editable_files": self.config.files.editable,
+                    "readonly_files": self.config.files.readonly,
+                }
+                self.api.sync_experiment(exp, self.db_path, self.config.project.name, config=config_dict)
 
     def sync_pending(self):
         if self.api:

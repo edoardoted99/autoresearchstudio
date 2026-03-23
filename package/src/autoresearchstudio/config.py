@@ -24,7 +24,7 @@ class MetricConfig:
 @dataclass
 class ExperimentConfig:
     run_command: str
-    timeout: int = 600
+    timeout: Optional[int] = 60
     setup_command: Optional[str] = None
     log_file: str = "run.log"
     constraints: Optional[str] = None
@@ -89,7 +89,7 @@ def load_config(path: str = CONFIG_FILENAME) -> Config:
     exp_raw = raw.get("experiment", {})
     experiment = ExperimentConfig(
         run_command=exp_raw.get("run_command", "python train.py"),
-        timeout=exp_raw.get("timeout", 600),
+        timeout=exp_raw.get("timeout", 60),
         setup_command=exp_raw.get("setup_command"),
         log_file=exp_raw.get("log_file", "run.log"),
         constraints=exp_raw.get("constraints"),

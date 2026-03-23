@@ -16,9 +16,10 @@ class RunResult:
     log_file: str
 
 
-def run_experiment(command: str, log_file: str = "run.log", timeout: int = 600) -> RunResult:
+def run_experiment(command: str, log_file: str = "run.log", timeout: Optional[int] = 60) -> RunResult:
     """Execute command, capture stdout+stderr to log_file, enforce timeout.
 
+    If timeout is None, wait indefinitely for the process to complete.
     Returns RunResult with exit code, duration, timeout flag, and log path.
     """
     t0 = time.time()

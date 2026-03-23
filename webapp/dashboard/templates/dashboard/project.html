@@ -10,6 +10,17 @@
 
 <h2 style="margin-bottom: 20px;">{{ api_key.name }}</h2>
 
+<!-- Config -->
+{% if api_key.config %}
+<div class="card" style="display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; padding: 14px 20px;">
+    {% if api_key.config.goal %}<div><span style="color: var(--dim);">Goal:</span> {{ api_key.config.goal }}</div>{% endif %}
+    <div><span style="color: var(--dim);">Metric:</span> {{ api_key.config.metric_name|default:"—" }} ({{ api_key.config.metric_direction|default:"—" }})</div>
+    <div><span style="color: var(--dim);">Time budget:</span> {% if api_key.config.timeout %}{{ api_key.config.timeout }}s{% else %}unlimited{% endif %}</div>
+    <div><span style="color: var(--dim);">Command:</span> <code>{{ api_key.config.run_command|default:"—" }}</code></div>
+    {% if api_key.config.editable_files %}<div><span style="color: var(--dim);">Editable:</span> {% for f in api_key.config.editable_files %}<code>{{ f }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+</div>
+{% endif %}
+
 <!-- Stats -->
 <div class="card">
     <div class="stats">

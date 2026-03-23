@@ -49,6 +49,18 @@ def experiment_create(request):
     if data.get("finished_at"):
         finished_at = parse_datetime(data["finished_at"])
 
+    # Update project config if provided
+    config = data.get("config")
+    if config and isinstance(config, dict):
+        api_key.config = config
+        api_key.save(update_fields=["config"])
+
+    # Update project name if provided
+    project_name = data.get("project_name")
+    if project_name and api_key.name in ("cli", ""):
+        api_key.name = project_name
+        api_key.save(update_fields=["name"])
+
     # Upsert: if experiment with same run_tag + experiment_number exists, update it
     exp, created = Experiment.objects.update_or_create(
         api_key=api_key,
