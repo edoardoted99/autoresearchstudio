@@ -1,4 +1,4 @@
-# autoresearch.studio
+# [autoresearch.studio](https://autoresearch.studio)
 
 Turn any ML training script into an autonomous research loop. An AI agent modifies your code, runs experiments, keeps what improves the metric, discards what doesn't — and repeats indefinitely while you sleep.
 
