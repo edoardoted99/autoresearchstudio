@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AutoResearchStudio — Autonomous ML Research</title>
+  <title>autoresearch.studio — Autonomous ML Research</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
   <style>
     :root {
@@ -217,7 +217,7 @@
 
 <!-- Nav -->
 <nav class="nav"><div class="nav-in">
-  <a href="/" class="brand"><span class="brand-ico">🔬</span>Auto<em>Research</em>Studio</a>
+  <a href="/" class="brand"><span class="brand-ico">🔬</span>autoresearch<em>.studio</em></a>
   <div class="nav-r">
     <a href="https://github.com/edoardoted99/autoresearchstudio" target="_blank">GitHub</a>
     <a href="https://pypi.org/project/autoresearchstudio/" target="_blank">PyPI</a>
@@ -226,10 +226,9 @@
 
 <!-- Hero -->
 <section class="hero-wrap"><div class="hero">
-  <h1>Auto<em>Research</em>Studio</h1>
+  <h1>autoresearch<em>.studio</em></h1>
   <p class="sub">
-    Write a <code>program.md</code> that describes your research goal and point an AI agent at it.
-    It modifies your code, trains, evaluates, keeps or discards &mdash; and repeats, while you sleep.
+    Turn any ML training script into an autonomous research loop. An AI agent modifies your code, runs experiments, keeps what improves the metric, discards what doesn't &mdash; and repeats, while you sleep.
   </p>
   <div class="hero-btns">
     <a href="https://github.com/edoardoted99/autoresearchstudio" class="btn-primary" target="_blank">Get started</a>
@@ -244,41 +243,35 @@
       <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
       <span>terminal</span>
     </div>
-    <pre><span class="c"># Install and init your project</span>
+    <pre><span class="c"># Install and init — one command creates everything</span>
 <span class="w">$ pip install autoresearchstudio</span>
 <span class="w">$ ars init</span>
-<span class="a">Created autoresearch.yaml</span>
-<span class="a">Created program.md</span>
-
-<span class="c"># Generate a dashboard API key</span>
-<span class="w">$ ars key</span>
-<span class="g">✓ API key saved to autoresearch.yaml</span>
+<span class="a">Creating project files:</span>
+<span class="a">  train.py</span>
+<span class="a">  prepare.py</span>
+<span class="a">  CLAUDE.md</span>
+<span class="g">Connecting to dashboard...</span>
+<span class="g">  API key: ars_bd02b4cc...</span>
+<span class="g">  Dashboard: https://autoresearch.studio/?key=ars_bd02...</span>
 
 <span class="c"># Launch Claude Code — it takes over from here</span>
 <span class="w">$ claude</span>
-<span class="a">╭──────────────────────────────────────╮</span>
-<span class="a">│  Claude Code                         │</span>
-<span class="a">╰──────────────────────────────────────╯</span>
-
-<span class="w">&gt;</span> Hi Claude, read program.md and start the experiment.
+<span class="w">&gt;</span> Read program.md and start the experiments
 
 <span class="c">Claude: Setting up run...</span>
-<span class="a">  ars setup --tag v1</span>
+<span class="a">  ars setup --tag mar23</span>
 <span class="a">  ars run -d "baseline"</span>
-<span class="a">  accuracy: 95.40</span>
-<span class="a">  ars judge</span>
-<span class="gw">  KEEP</span> <span class="c">— baseline accepted</span>
+<span class="a">  val_accuracy: 0.9506</span>
+<span class="gw">  KEEP</span> <span class="c">— baseline</span>
 
-<span class="c">Claude: Trying dropout + cosine lr schedule...</span>
+<span class="c">Claude: Trying dropout + cosine lr...</span>
 <span class="a">  ars run -d "add dropout + cosine lr"</span>
-<span class="a">  accuracy: 97.20</span>
-<span class="a">  ars judge</span>
-<span class="gw">  KEEP</span> <span class="c">— 95.40 → 97.20</span>
+<span class="a">  val_accuracy: 0.9720</span>
+<span class="gw">  KEEP</span> <span class="c">— 0.9506 → 0.9720</span>
 
 <span class="c">Claude: Testing gelu activation...</span>
 <span class="a">  ars run -d "replace relu with gelu"</span>
-<span class="a">  accuracy: 96.80</span>
-<span class="a">  ars judge</span>
+<span class="a">  val_accuracy: 0.9680</span>
 <span class="r">  DISCARD</span> <span class="c">— regressed, reverted</span>
 
 <span class="c">Claude: Continuing to next experiment...</span></pre>
@@ -335,28 +328,51 @@
 
 <!-- The files -->
 <section class="section" id="how"><div class="section-in">
-  <h2>Three files, full autonomy</h2>
-  <p class="sub">You write <code>program.md</code> and <code>autoresearch.yaml</code>. The agent edits <code>train.py</code>.</p>
+  <h2>One command, full project</h2>
+  <p class="sub"><code>ars init</code> generates everything. Customize for your task, or run the MNIST default as-is.</p>
   <div class="files-grid">
     <div class="file-card">
-      <div class="file-hdr"><span>📝</span> program.md</div>
-      <pre>You are an ML researcher optimizing a
-neural network for image classification.
+      <div class="file-hdr"><span>🧪</span> train.py</div>
+      <pre><span class="c"># ── Model (modify this) ──────────</span>
+class Net(nn.Module):
+    def __init__(self):
+        self.conv1 = nn.Conv2d(1, 32, 3)
+        self.conv2 = nn.Conv2d(32, 64, 3)
+        self.fc1 = nn.Linear(64*7*7, 128)
+        self.fc2 = nn.Linear(128, 10)
 
-Goal: maximize accuracy on the test set.
+<span class="c"># ── Hyperparams (modify these) ───</span>
+LEARNING_RATE = 1e-3
+BATCH_SIZE = 128
 
-Strategy:
-- Try architectural changes first
-- Then tune hyperparameters
-- Prefer simpler solutions
-- Keep changes small and focused</pre>
-      <div class="file-desc">The instructions for the AI agent. This is the file <strong>you</strong> iterate on.</div>
+<span class="c"># ── Output (keep this format) ────</span>
+print(f"val_accuracy: {acc:.6f}")</pre>
+      <div class="file-desc">The agent modifies this file. Every change is a git commit &mdash; keeps advance the branch, discards are reverted.</div>
+    </div>
+    <div class="file-card">
+      <div class="file-hdr"><span>🔒</span> prepare.py</div>
+      <pre><span class="c"># Read-only during experiments</span>
+TIME_BUDGET = 20  <span class="c"># seconds</span>
+
+def download_data():
+    <span class="c"># downloads MNIST (or your data)</span>
+    ...
+
+def load_data():
+    <span class="c"># returns (train_X, train_y,</span>
+    <span class="c">#          test_X, test_y)</span>
+    ...
+
+def evaluate_accuracy(model, X, y):
+    <span class="c"># fixed eval — agent can't game it</span>
+    ...</pre>
+      <div class="file-desc">Data loading + evaluation harness. Read-only during experiments so the agent can't game the metric.</div>
     </div>
     <div class="file-card">
       <div class="file-hdr"><span>⚙️</span> autoresearch.yaml</div>
       <pre>project:
-  name: mnist-research
-  goal: Maximize accuracy
+  name: my-autoresearch
+  goal: Get the highest val_accuracy.
 
 files:
   editable: [train.py]
@@ -364,32 +380,13 @@ files:
 
 experiment:
   run_command: python train.py
-  timeout: 120
+  timeout: 60
 
 metric:
-  name: accuracy
-  pattern: "Accuracy: ([0-9.]+)"
+  name: val_accuracy
+  pattern: "^val_accuracy:\\s+([\\d.]+)"
   direction: maximize</pre>
-      <div class="file-desc">Config: training command, metric, time budget. One file, no boilerplate.</div>
-    </div>
-    <div class="file-card">
-      <div class="file-hdr"><span>🧪</span> train.py</div>
-      <pre>import torch
-import torch.nn as nn
-
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(784, 128)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        return self.fc2(x)
-
-# training loop ...
-print(f"Accuracy: {acc:.2f}")</pre>
-      <div class="file-desc">The agent modifies this file. Every change is a git commit — keeps are merged, discards are reverted.</div>
+      <div class="file-desc">Config: metric, timeout, files. API key and dashboard URL are set automatically by <code>ars init</code>.</div>
     </div>
   </div>
 </div></section>
@@ -402,7 +399,7 @@ print(f"Accuracy: {acc:.2f}")</pre>
 
 <!-- Footer -->
 <footer class="foot">
-  <span>AutoResearchStudio &mdash; inspired by <a href="https://github.com/karpathy/autoresearch" target="_blank">Karpathy's autoresearch</a></span>
+  <span>autoresearch.studio &mdash; inspired by <a href="https://github.com/karpathy/autoresearch" target="_blank">Karpathy's autoresearch</a></span>
   <a href="https://github.com/edoardoted99/autoresearchstudio" target="_blank">GitHub</a>
 </footer>
 
