@@ -240,9 +240,8 @@ def cmd_init(args):
         dashboard_url = f"{base_url}/?key={api_key}"
         print(f"\n  Dashboard: {dashboard_url}")
 
-    print("\nDone! Next steps:")
-    print("  1. (optional) Customize train.py / prepare.py / autoresearch.yaml for your task")
-    print("  2. Tell Claude: \"read program.md and start the experiments\"")
+    print("\nDone! Launch Claude and tell it:")
+    print("  \"configure and start the experiments\"")
 
 
 def cmd_setup(args):

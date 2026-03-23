@@ -4,55 +4,78 @@
 # CLAUDE.md — context for Claude Code when configuring/running experiments
 # ---------------------------------------------------------------------------
 
-DEFAULT_CLAUDE_MD = r'''# Autoresearch Studio project
+DEFAULT_CLAUDE_MD = r'''# autoresearch.studio
 
 This project uses **autoresearchstudio** (`ars`) — an autonomous ML experiment framework.
 The `ars` CLI handles experiment execution, metric extraction, keep/discard decisions, and dashboard sync automatically.
 
-## Project files
+## What to do when the user says "configure and start the experiments"
 
-| File | Role | Can you modify it? |
-|------|------|--------------------|
-| `train.py` | Model, hyperparameters, training loop | **Yes** — this is the main file you optimize |
-| `prepare.py` | Data loading, evaluation function, constants | **No** during experiments (read-only). Edit only when adapting to a new dataset **before** `ars setup` |
-| `autoresearch.yaml` | Configuration: metric, timeout, file roles, API key | Edit when configuring, not during the experiment loop |
-| `program.md` | Auto-generated instructions for the experiment loop | Do not edit manually — regenerate with `ars generate` |
+### Step 1: Understand the project
 
-## Two modes of operation
+Look at the files in this directory. Decide if the project needs configuration:
 
-### 1. Configure mode (before experiments start)
-If the user asks you to adapt the project to their dataset/task:
-- Modify `prepare.py`: replace data loading, evaluation, constants
-- Modify `train.py`: adapt the model architecture to the new data shape
-- Update `autoresearch.yaml`: set metric name, pattern, direction, timeout, constraints
-- Run `ars generate` to update `program.md`
+- **Default MNIST template** (train.py imports from prepare.py, has `Net` with conv layers for 28x28 images): skip to Step 3.
+- **User's own project** (their own training script, dataset, etc.): go to Step 2.
 
-### 2. Experiment mode (autonomous loop)
-Once experiments begin, follow the instructions in `program.md`:
-- Only modify files listed under `files.editable` in `autoresearch.yaml`
-- Use `ars` commands for the loop: `ars run` → `ars log` → `ars judge`
-- Never stop — run indefinitely until the user interrupts
+### Step 2: Configure (only if needed)
+
+Adapt all files to the user's project. Ask the user what their task is if unclear.
+
+1. **`prepare.py`** — Data loading and evaluation harness (read-only during experiments):
+   - `download_data()`: download or locate the dataset
+   - `load_data()`: must return `(train_X, train_y, test_X, test_y)` as tensors
+   - `evaluate_accuracy(model, images, labels)`: fixed evaluation function (the agent can't game this)
+   - `TIME_BUDGET`: training time in seconds
+
+2. **`train.py`** — Model and training loop (the AI agent optimizes this during experiments):
+   - Model class, hyperparameters, optimizer, training loop
+   - Must import `load_data`, `evaluate_accuracy`, `TIME_BUDGET` from `prepare.py`
+   - Must print metrics at the end in a grep-able format, e.g.:
+     ```
+     val_accuracy:     0.950000
+     val_loss:         0.083412
+     num_params:       12345
+     ```
+
+3. **`autoresearch.yaml`** — Configuration:
+   - `project.name`, `project.goal`: describe the task
+   - `files.editable` / `files.readonly`: which files the agent can/cannot modify
+   - `experiment.run_command`: how to run one experiment (e.g. `python train.py`)
+   - `experiment.timeout`: max seconds per experiment
+   - `experiment.setup_command`: one-time setup (e.g. `python prepare.py` to download data)
+   - `metric.name`, `metric.pattern`, `metric.direction`: what to optimize and how to extract it
+   - `metric.secondary`: optional extra metrics to track
+
+4. Run **`ars generate`** to regenerate `program.md` from the updated config.
+
+5. Do a quick sanity check: run `python train.py` to verify it works and prints the expected metric format.
+
+### Step 3: Start the experiments
+
+1. Read `program.md` for the full experiment loop instructions.
+2. Agree on a run tag with the user (e.g. `mar23`).
+3. Run `ars setup --tag <tag>` to create the git branch and initialize tracking.
+4. Follow the experiment loop in `program.md`: baseline → modify → run → judge → repeat forever.
 
 ## Key ars commands
 
 ```
-ars setup --tag <tag>    # create branch + init tracking + download data
+ars setup --tag <tag>    # create branch + init tracking + run setup command
 ars run -d "description" # run experiment with timeout
 ars log -d "description" # extract metrics from output
 ars judge                # keep if improved, discard (auto-revert) if not
 ars status               # current state, best metric
 ars results              # full results table
+ars generate             # regenerate program.md from autoresearch.yaml
 ```
 
-## Output format contract
+## Rules during the experiment loop
 
-`train.py` must print metrics in this exact format (matched by regex in `autoresearch.yaml`):
-```
-val_accuracy:     0.990625
-val_loss:         0.083412
-num_params:       421642
-```
-The metric names and format must match the `metric.pattern` fields in `autoresearch.yaml`.
+- Only modify files listed under `files.editable` in `autoresearch.yaml`
+- Never modify `prepare.py` or the evaluation function
+- Never install new packages
+- Never stop — run indefinitely until the user interrupts
 '''
 
 # ---------------------------------------------------------------------------
