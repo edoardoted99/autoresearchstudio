@@ -276,6 +276,14 @@ api:
 
 ---
 
+## Mathematical model
+
+AutoResearch can be formalized as a **(1+1) Evolution Strategy** with elitist selection, fully determined by three parameters: initial step size, decay rate, and agent bias. The paper derives keep probability, expected gain, and the cumulative gain area metric.
+
+[Read the full mathematical model (PDF)](mathematical_model.pdf)
+
+---
+
 ## License
 
 MIT
