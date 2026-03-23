@@ -17,12 +17,15 @@ Usage: python train.py
 import time
 import math
 import random
+import copy
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from prepare import TIME_BUDGET, load_data, make_dataloader, evaluate_accuracy
+
+EMA_DECAY = 0.999
 
 # ── Model (modify this) ───────────────────────────────────────────
 
@@ -91,6 +94,8 @@ def main():
     print(f"Parameters: {num_params:,}")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    # EMA model for evaluation
+    ema_model = copy.deepcopy(model)
     train_loader = make_dataloader(train_images, train_labels, BATCH_SIZE)
 
     # Training loop (time-budgeted)
@@ -109,6 +114,11 @@ def main():
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        # Update EMA
+        with torch.no_grad():
+            for ema_p, p in zip(ema_model.parameters(), model.parameters()):
+                ema_p.mul_(EMA_DECAY).add_(p, alpha=1 - EMA_DECAY)
 
         dt = time.time() - t0
         total_training_time += dt
@@ -133,7 +143,13 @@ def main():
     print()
 
     # ── Evaluation (do not change output format) ──────────────────
-    accuracy, val_loss = evaluate_accuracy(model, test_images, test_labels)
+    # Copy BN running stats to EMA model
+    for ema_m, m in zip(ema_model.modules(), model.modules()):
+        if isinstance(m, nn.BatchNorm2d):
+            ema_m.running_mean.copy_(m.running_mean)
+            ema_m.running_var.copy_(m.running_var)
+            ema_m.num_batches_tracked.copy_(m.num_batches_tracked)
+    accuracy, val_loss = evaluate_accuracy(ema_model, test_images, test_labels)
 
     t_end = time.time()
     print("---")
