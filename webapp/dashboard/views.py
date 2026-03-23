@@ -28,10 +28,15 @@ def logout(request):
 
 
 def index(request):
-    """Landing page / project list."""
+    """Landing page — always shows the public homepage."""
+    return render(request, "dashboard/login.html")
+
+
+def dashboard(request):
+    """Authenticated dashboard — project list."""
     api_key = _get_api_key(request)
     if api_key is None:
-        return render(request, "dashboard/login.html")
+        return redirect("index")
 
     projects = Project.objects.filter(api_key=api_key).order_by("-created_at")
 
@@ -187,7 +192,7 @@ def project_detail(request, project_id):
     """Project detail: list of runs and experiments."""
     api_key = _get_api_key(request)
     if api_key is None:
-        return render(request, "dashboard/login.html")
+        return redirect("index")
 
     project = get_object_or_404(Project, id=project_id, api_key=api_key)
     run_tag = request.GET.get("run")
@@ -250,7 +255,7 @@ def experiment_detail(request, experiment_id):
     """Single experiment detail with diff."""
     api_key = _get_api_key(request)
     if api_key is None:
-        return render(request, "dashboard/login.html")
+        return redirect("index")
 
     experiment = get_object_or_404(Experiment, id=experiment_id, project__api_key=api_key)
 

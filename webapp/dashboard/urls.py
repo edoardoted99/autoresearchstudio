@@ -4,6 +4,7 @@ from . import views, api
 urlpatterns = [
     # Dashboard
     path("", views.index, name="index"),
+    path("dashboard/", views.dashboard, name="dashboard"),
     path("logout/", views.logout, name="logout"),
     path("project/<int:project_id>/", views.project_detail, name="project_detail"),
     path("experiment/<int:experiment_id>/", views.experiment_detail, name="experiment_detail"),
