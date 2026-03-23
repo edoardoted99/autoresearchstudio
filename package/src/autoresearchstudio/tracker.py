@@ -185,7 +185,7 @@ class ApiSync:
         self.timeout_seconds = timeout_seconds
         self._pending_threads: list[threading.Thread] = []
 
-    def sync_experiment(self, experiment: Experiment, tracker: LocalTracker,
+    def sync_experiment(self, experiment: Experiment, db_path: str,
                         project_name: str = "") -> bool:
         """POST experiment data to the API. Non-blocking (runs in a thread)."""
         payload = {
@@ -205,6 +205,7 @@ class ApiSync:
             "started_at": experiment.started_at,
             "finished_at": experiment.finished_at,
         }
+        exp_id = experiment.id
 
         def _post():
             try:
@@ -216,11 +217,17 @@ class ApiSync:
                 )
                 if not resp.ok:
                     print(f"Warning: API sync returned {resp.status_code}: {resp.text[:200]}")
-                if resp.ok and experiment.id is not None:
-                    tracker.update_experiment(
-                        experiment.id,
-                        synced_at=datetime.now(timezone.utc).isoformat()
-                    )
+                if resp.ok and exp_id is not None:
+                    # Open a fresh connection in this thread (SQLite requires it)
+                    conn = sqlite3.connect(db_path)
+                    try:
+                        conn.execute(
+                            "UPDATE experiments SET synced_at = ? WHERE id = ?",
+                            (datetime.now(timezone.utc).isoformat(), exp_id),
+                        )
+                        conn.commit()
+                    finally:
+                        conn.close()
             except Exception as e:
                 print(f"Warning: API sync failed: {e}")
 
@@ -235,10 +242,10 @@ class ApiSync:
             t.join(timeout=timeout)
         self._pending_threads.clear()
 
-    def sync_pending(self, tracker: LocalTracker):
+    def sync_pending(self, tracker: LocalTracker, db_path: str):
         """Retry syncing any experiments that haven't been synced yet."""
         for exp in tracker.get_unsynced():
-            self.sync_experiment(exp, tracker)
+            self.sync_experiment(exp, db_path)
 
 
 class Tracker:
@@ -246,6 +253,7 @@ class Tracker:
 
     def __init__(self, config: Config, db_path: str = "autoresearch.db"):
         self.config = config
+        self.db_path = db_path
         self.local = LocalTracker(db_path)
         self.api = (
             ApiSync(config.api.endpoint, config.api.key,
@@ -266,11 +274,11 @@ class Tracker:
         if self.api:
             exp = self.local.get_experiment(exp_id)
             if exp:
-                self.api.sync_experiment(exp, self.local, self.config.project.name)
+                self.api.sync_experiment(exp, self.db_path, self.config.project.name)
 
     def sync_pending(self):
         if self.api:
-            self.api.sync_pending(self.local)
+            self.api.sync_pending(self.local, self.db_path)
 
     def get_latest(self) -> Optional[Experiment]:
         return self.local.get_latest()

@@ -16,6 +16,7 @@ from .config import (
 from .judge import Judge
 from .prompt import generate_program_md
 from .runner import run_experiment, read_log_tail
+from .templates import DEFAULT_TRAIN_PY, DEFAULT_PREPARE_PY
 from .tracker import Tracker
 
 
@@ -91,8 +92,36 @@ def _get_run_tag(tracker: Tracker) -> str:
 # Commands
 # ---------------------------------------------------------------------------
 
+def _generate_api_key(config: Config) -> str | None:
+    """Try to generate an API key from the remote server. Returns key or None."""
+    import requests as req
+
+    endpoint = config.api.endpoint.rstrip("/")
+    base_url = endpoint.rsplit("/api", 1)[0]
+    url = f"{base_url}/api/keys/"
+    name = config.project.name or "cli"
+
+    try:
+        resp = req.post(url, json={"name": name}, timeout=10)
+        resp.raise_for_status()
+        return resp.json()["key"]
+    except Exception:
+        return None
+
+
+def _write_file_if_needed(path: str, content: str, force: bool) -> bool:
+    """Write file if it doesn't exist or force is set. Returns True if written."""
+    if os.path.exists(path) and not force:
+        print(f"  {path} already exists (skipped, use --force to overwrite)")
+        return False
+    with open(path, "w") as f:
+        f.write(content)
+    print(f"  {path}")
+    return True
+
+
 def cmd_init(args):
-    """Initialize a new autoresearch project."""
+    """Initialize a new autoresearch project with working defaults."""
     if os.path.exists(CONFIG_FILENAME) and not args.force:
         print(f"{CONFIG_FILENAME} already exists. Use --force to overwrite.")
         sys.exit(1)
@@ -138,23 +167,82 @@ def cmd_init(args):
             ),
         )
     else:
-        config = Config()
+        # Default: working MNIST example
+        config = Config(
+            project=ProjectConfig(
+                name="my-autoresearch",
+                description="Autonomous ML optimization experiment.",
+                goal="Get the highest val_accuracy.",
+            ),
+            files=FilesConfig(
+                editable=["train.py"],
+                readonly=["prepare.py"],
+            ),
+            experiment=ExperimentConfig(
+                run_command="python train.py",
+                timeout=60,
+                setup_command="python prepare.py",
+                log_file="run.log",
+                constraints=(
+                    "Keep the model small enough to train on CPU in the time budget. "
+                    "A GPU is not required for this example."
+                ),
+            ),
+            metric=MetricConfig(
+                name="val_accuracy",
+                pattern=r"^val_accuracy:\s+([\d.]+)",
+                direction="maximize",
+                secondary=[
+                    SecondaryMetric(name="val_loss", pattern=r"^val_loss:\s+([\d.]+)"),
+                    SecondaryMetric(name="num_params", pattern=r"^num_params:\s+([\d]+)"),
+                ],
+            ),
+            judge=JudgeConfig(
+                threshold=0.0,
+                simplicity_note=(
+                    "**Simplicity criterion**: All else being equal, simpler is better. "
+                    "A tiny accuracy gain that adds ugly complexity is not worth it. "
+                    "Removing complexity while keeping accuracy is a great outcome."
+                ),
+            ),
+        )
 
+    # --- 1. Generate template files ---
+    print("Creating project files:")
+    _write_file_if_needed("train.py", DEFAULT_TRAIN_PY, args.force)
+    _write_file_if_needed("prepare.py", DEFAULT_PREPARE_PY, args.force)
+
+    # --- 2. Generate API key ---
+    print("\nConnecting to dashboard...")
+    api_key = _generate_api_key(config)
+    if api_key:
+        config.api.key = api_key
+        print(f"  API key: {api_key}")
+    else:
+        print("  Could not reach server (you can run `ars key` later)")
+
+    # --- 3. Write autoresearch.yaml ---
     yaml_str = config_to_yaml(config)
     with open(CONFIG_FILENAME, "w") as f:
         f.write(yaml_str)
+    print(f"\n  {CONFIG_FILENAME}")
 
-    print(f"Created {CONFIG_FILENAME}")
-
-    # Generate program.md
+    # --- 4. Generate program.md ---
     program = generate_program_md(config)
     with open("program.md", "w") as f:
         f.write(program)
-    print("Created program.md")
+    print("  program.md")
 
-    print("\nNext steps:")
-    print("  1. Edit autoresearch.yaml to match your project")
-    print("  2. Run `ars setup --tag <tag>` to start a run")
+    # --- 5. Print summary ---
+    if api_key:
+        base_url = config.api.endpoint.rsplit("/api", 1)[0]
+        dashboard_url = f"{base_url}/?key={api_key}"
+        print(f"\n  Dashboard: {dashboard_url}")
+
+    print("\nDone! Next steps:")
+    print("  1. (optional) Customize train.py / prepare.py / autoresearch.yaml for your task")
+    print("  2. ars setup --tag <tag>        # create branch + download data")
+    print("  3. Tell Claude: \"read program.md and start the experiments\"")
 
 
 def cmd_setup(args):
