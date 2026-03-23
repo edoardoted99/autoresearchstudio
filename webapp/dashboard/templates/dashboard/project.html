@@ -38,55 +38,13 @@
     </div>
 </div>
 
-<!-- Running experiment progress bar -->
-{% if running_exp %}
-<div class="card" id="progress-card" hx-get="{% url 'dashboard' %}?key={{ api_key.key }}{% if current_run %}&run={{ current_run }}{% endif %}" hx-trigger="every 5s" hx-select="#progress-card" hx-swap="outerHTML">
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-        <span class="badge badge-running" style="display: inline-flex; align-items: center; gap: 6px;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); display: inline-block; animation: pulse 1.5s infinite;"></span>
-            Running
-        </span>
-        <span style="font-weight: 600;">Experiment #{{ running_exp.experiment_number }}</span>
-        {% if running_exp.description %}<span style="color: var(--text-dim); font-size: 13px;">— {{ running_exp.description }}</span>{% endif %}
-    </div>
-    {% if running_exp.timeout_seconds and running_exp.started_at %}
-    <div style="position: relative; height: 24px; background: var(--bg); border-radius: 6px; overflow: hidden; border: 1px solid var(--border);">
-        <div id="progress-fill" style="height: 100%; background: linear-gradient(90deg, rgba(210,153,34,0.4), rgba(210,153,34,0.7)); border-radius: 6px; transition: width 1s linear; width: 0%;"></div>
-        <span id="progress-label" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap;"></span>
-    </div>
-    <script>
-    (function() {
-        const startedAt = new Date("{{ running_exp.started_at|date:'c' }}");
-        const timeout = {{ running_exp.timeout_seconds }};
-        const fill = document.getElementById('progress-fill');
-        const label = document.getElementById('progress-label');
-        function update() {
-            const elapsed = (Date.now() - startedAt.getTime()) / 1000;
-            const pct = Math.min(100, (elapsed / timeout) * 100);
-            fill.style.width = pct + '%';
-            if (pct > 85) fill.style.background = 'linear-gradient(90deg, rgba(248,81,73,0.4), rgba(248,81,73,0.7))';
-            const elapsedInt = Math.floor(elapsed);
-            if (elapsed >= timeout) {
-                fill.style.width = '100%';
-                fill.style.background = 'linear-gradient(90deg, rgba(248,81,73,0.4), rgba(248,81,73,0.7))';
-                label.textContent = 'Overtime — ' + elapsedInt + 's / ' + timeout + 's';
-            } else {
-                const remaining = Math.ceil(timeout - elapsed);
-                label.textContent = elapsedInt + 's / ' + timeout + 's (' + remaining + 's remaining)';
-            }
-        }
-        update();
-        setInterval(update, 1000);
-    })();
-    </script>
-    {% else %}
-    <div style="color: var(--text-dim); font-size: 13px;">
-        Started {{ running_exp.started_at|timesince }} ago
-        {% if running_exp.timeout_seconds %}· timeout: {{ running_exp.timeout_seconds }}s{% endif %}
-    </div>
-    {% endif %}
+<!-- Running experiment progress bar (polls every 3s, appears/disappears automatically) -->
+<div id="progress-poll"
+     hx-get="{% url 'progress_bar' %}?key={{ api_key.key }}{% if current_run %}&run={{ current_run }}{% endif %}"
+     hx-trigger="load, every 3s"
+     hx-swap="innerHTML">
+    {% include "dashboard/partials/progress_bar.html" %}
 </div>
-{% endif %}
 
 <!-- Run filter tabs -->
 {% if run_tags|length > 1 %}

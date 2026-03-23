@@ -10,6 +10,7 @@ urlpatterns = [
 
     # HTMX partials
     path("htmx/experiments/", views.experiments_table, name="experiments_table"),
+    path("htmx/progress/", views.progress_bar, name="progress_bar"),
 
     # API
     path("api/experiments/", api.experiment_create, name="api_experiment_create"),

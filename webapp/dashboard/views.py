@@ -224,3 +224,21 @@ def experiments_table(request):
         "api_key": api_key,
         "experiments": experiments,
     })
+
+
+def progress_bar(request):
+    """HTMX partial: progress bar for running experiment."""
+    api_key = _get_api_key(request)
+    if api_key is None:
+        raise Http404
+
+    run_tag = request.GET.get("run")
+    experiments = api_key.experiments.all()
+    if run_tag:
+        experiments = experiments.filter(run_tag=run_tag)
+
+    running_exp = experiments.filter(status="running").order_by("-id").first()
+
+    return render(request, "dashboard/partials/progress_bar.html", {
+        "running_exp": running_exp,
+    })
