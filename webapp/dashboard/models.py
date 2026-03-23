@@ -8,24 +8,12 @@ def generate_api_key():
 
 class ApiKey(models.Model):
     key = models.CharField(max_length=64, unique=True, default=generate_api_key)
-    name = models.CharField(max_length=255, help_text="Label for this key")
+    name = models.CharField(max_length=255, help_text="Project name for this key")
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.name} ({self.key[:12]}...)"
-
-
-class Project(models.Model):
-    api_key = models.ForeignKey(ApiKey, on_delete=models.CASCADE, related_name="projects")
-    name = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ("api_key", "name")
-
-    def __str__(self):
-        return self.name
 
 
 class Experiment(models.Model):
@@ -36,7 +24,7 @@ class Experiment(models.Model):
         ("crash", "Crash"),
     ]
 
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="experiments")
+    api_key = models.ForeignKey(ApiKey, on_delete=models.CASCADE, related_name="experiments")
     run_tag = models.CharField(max_length=100)
     experiment_number = models.IntegerField()
     commit_hash = models.CharField(max_length=40, blank=True, default="")
@@ -57,4 +45,4 @@ class Experiment(models.Model):
         ordering = ["id"]
 
     def __str__(self):
-        return f"#{self.experiment_number} {self.status} ({self.project.name}/{self.run_tag})"
+        return f"#{self.experiment_number} {self.status} ({self.api_key.name}/{self.run_tag})"

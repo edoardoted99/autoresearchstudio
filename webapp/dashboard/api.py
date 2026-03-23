@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.utils.dateparse import parse_datetime
 
-from .models import ApiKey, Project, Experiment
+from .models import ApiKey, Experiment
 
 
 def _authenticate(request):
@@ -41,13 +41,6 @@ def experiment_create(request):
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-    # Get or create project
-    project_name = data.get("project_name") or data.get("run_tag", "default")
-    project, _ = Project.objects.get_or_create(
-        api_key=api_key,
-        name=project_name,
-    )
-
     # Parse optional datetimes
     started_at = None
     if data.get("started_at"):
@@ -58,7 +51,7 @@ def experiment_create(request):
 
     # Upsert: if experiment with same run_tag + experiment_number exists, update it
     exp, created = Experiment.objects.update_or_create(
-        project=project,
+        api_key=api_key,
         run_tag=data.get("run_tag", ""),
         experiment_number=data.get("experiment_number", 0),
         defaults={
@@ -80,7 +73,6 @@ def experiment_create(request):
     return JsonResponse({
         "id": exp.id,
         "created": created,
-        "project": project.name,
         "experiment_number": exp.experiment_number,
         "status": exp.status,
     }, status=201 if created else 200)

@@ -1,15 +1,14 @@
 {% extends "dashboard/base.html" %}
-{% block title %}{{ project.name }} — autoresearch.studio{% endblock %}
+{% block title %}{{ api_key.name }} — autoresearch.studio{% endblock %}
 
 {% block header_right %}
-<span style="color: var(--dim); font-size: .85rem;">{{ api_key.name }}</span>
+<span style="color: var(--dim); font-size: .85rem;">{{ api_key.name }} · <code style="font-size:.75rem">{{ api_key.key|truncatechars:16 }}</code></span>
 <a href="{% url 'logout' %}">Change key</a>
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'index' %}?all&key={{ api_key.key }}" class="back-link">&larr; All Projects</a>
 
-<h2 style="margin-bottom: 20px;">{{ project.name }}</h2>
+<h2 style="margin-bottom: 20px;">{{ api_key.name }}</h2>
 
 <!-- Stats -->
 <div class="card">
@@ -41,7 +40,7 @@
 
 <!-- Running experiment progress bar -->
 {% if running_exp %}
-<div class="card" id="progress-card" hx-get="{% url 'project_detail' project.id %}?key={{ api_key.key }}{% if current_run %}&run={{ current_run }}{% endif %}" hx-trigger="every 5s" hx-select="#progress-card" hx-swap="outerHTML">
+<div class="card" id="progress-card" hx-get="{% url 'dashboard' %}?key={{ api_key.key }}{% if current_run %}&run={{ current_run }}{% endif %}" hx-trigger="every 5s" hx-select="#progress-card" hx-swap="outerHTML">
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
         <span class="badge badge-running" style="display: inline-flex; align-items: center; gap: 6px;">
             <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); display: inline-block; animation: pulse 1.5s infinite;"></span>
@@ -92,9 +91,9 @@
 <!-- Run filter tabs -->
 {% if run_tags|length > 1 %}
 <div class="run-tabs">
-    <a href="{% url 'project_detail' project.id %}?key={{ api_key.key }}" class="run-tab {% if not current_run %}active{% endif %}">All</a>
+    <a href="{% url 'dashboard' %}?key={{ api_key.key }}" class="run-tab {% if not current_run %}active{% endif %}">All</a>
     {% for tag in run_tags %}
-    <a href="{% url 'project_detail' project.id %}?run={{ tag }}&key={{ api_key.key }}" class="run-tab {% if current_run == tag %}active{% endif %}">{{ tag }}</a>
+    <a href="{% url 'dashboard' %}?run={{ tag }}&key={{ api_key.key }}" class="run-tab {% if current_run == tag %}active{% endif %}">{{ tag }}</a>
     {% endfor %}
 </div>
 {% endif %}
@@ -115,7 +114,7 @@
 
 <!-- Experiments table (htmx auto-refresh) -->
 <div class="card"
-     hx-get="{% url 'experiments_table' project.id %}?key={{ api_key.key }}{% if current_run %}&run={{ current_run }}{% endif %}"
+     hx-get="{% url 'experiments_table' %}?key={{ api_key.key }}{% if current_run %}&run={{ current_run }}{% endif %}"
      hx-trigger="every 5s"
      hx-swap="innerHTML">
     {% include "dashboard/partials/experiments_table.html" %}
@@ -249,17 +248,14 @@ function renderTree(nodes, container) {
     const BRANCH_OFFSET_X = 24;
     const PAD = 20;
 
-    // Separate trunk (keeps) and branches
     const trunk = nodes.filter(n => n.is_trunk);
     const branches = nodes.filter(n => !n.is_trunk);
 
-    // Position trunk nodes horizontally, keyed by node ID
     const positions = {};
     trunk.forEach((node, i) => {
         positions[node.id] = { x: PAD + i * TRUNK_GAP_X, y: PAD };
     });
 
-    // Group branches by parent_id (the keep experiment they branch off)
     const branchesByParent = {};
     branches.forEach(n => {
         const pid = n.parent_id;
@@ -268,7 +264,6 @@ function renderTree(nodes, container) {
         branchesByParent[pid].push(n);
     });
 
-    // Position branches: stacked vertically below their parent keep
     let maxBranchY = PAD;
     for (const [parentId, children] of Object.entries(branchesByParent)) {
         const parentPos = positions[parentId];
@@ -280,7 +275,6 @@ function renderTree(nodes, container) {
         });
     }
 
-    // Handle orphans (no parent_id or parent not found)
     branches.forEach(n => {
         if (!positions[n.id]) {
             maxBranchY += BRANCH_GAP_Y;
@@ -293,7 +287,6 @@ function renderTree(nodes, container) {
 
     let svg = `<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, sans-serif;">`;
 
-    // Trunk edges (horizontal green lines between keeps)
     for (let i = 1; i < trunk.length; i++) {
         const from = positions[trunk[i - 1].id];
         const to = positions[trunk[i].id];
@@ -302,20 +295,14 @@ function renderTree(nodes, container) {
         }
     }
 
-    // Branch edges: vertical rail from parent + horizontal stubs
     for (const [parentId, children] of Object.entries(branchesByParent)) {
         const parentPos = positions[parentId];
         if (!parentPos) continue;
-
         const railX = parentPos.x + BRANCH_OFFSET_X / 2 + 4;
         const lastChild = children[children.length - 1];
         const lastChildPos = positions[lastChild.id];
         if (!lastChildPos) continue;
-
-        // Vertical rail
         svg += `<line x1="${railX}" y1="${parentPos.y + NODE_H}" x2="${railX}" y2="${lastChildPos.y + NODE_H / 2}" stroke="#30363d" stroke-width="1.5"/>`;
-
-        // Horizontal stubs + junction dots
         children.forEach(child => {
             const cp = positions[child.id];
             if (!cp) return;
@@ -327,14 +314,11 @@ function renderTree(nodes, container) {
         });
     }
 
-    // Draw nodes
     nodes.forEach(n => {
         const pos = positions[n.id];
         if (!pos) return;
-
         const isOnTrunk = n.is_trunk;
         const w = isOnTrunk ? NODE_W : NODE_W - BRANCH_OFFSET_X;
-
         const colors = {
             keep: { bg: 'rgba(63,185,80,0.15)', border: '#3fb950', text: '#3fb950' },
             discard: { bg: 'rgba(139,148,158,0.1)', border: '#30363d', text: '#8b949e' },
@@ -342,7 +326,6 @@ function renderTree(nodes, container) {
             running: { bg: 'rgba(210,153,34,0.15)', border: '#d29922', text: '#d29922' },
         };
         const c = colors[n.status] || colors.discard;
-
         svg += `<g style="cursor: pointer;" onclick="window.location='/experiment/${n.id}/?key=${apiKey}'">`;
         svg += `<rect x="${pos.x}" y="${pos.y}" width="${w}" height="${NODE_H}" rx="8" fill="${c.bg}" stroke="${c.border}" stroke-width="1.5"/>`;
         svg += `<text x="${pos.x + 8}" y="${pos.y + 18}" fill="${c.text}" font-size="12" font-weight="600">#${n.number} ${n.commit}</text>`;
