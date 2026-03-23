@@ -16,7 +16,7 @@ from .config import (
 from .judge import Judge
 from .prompt import generate_program_md
 from .runner import run_experiment, read_log_tail
-from .templates import DEFAULT_TRAIN_PY, DEFAULT_PREPARE_PY
+from .templates import DEFAULT_TRAIN_PY, DEFAULT_PREPARE_PY, DEFAULT_CLAUDE_MD
 from .tracker import Tracker
 
 
@@ -211,6 +211,7 @@ def cmd_init(args):
     print("Creating project files:")
     _write_file_if_needed("train.py", DEFAULT_TRAIN_PY, args.force)
     _write_file_if_needed("prepare.py", DEFAULT_PREPARE_PY, args.force)
+    _write_file_if_needed("CLAUDE.md", DEFAULT_CLAUDE_MD, args.force)
 
     # --- 2. Generate API key ---
     print("\nConnecting to dashboard...")

@@ -1,6 +1,61 @@
 """Default project templates for `ars init`."""
 
 # ---------------------------------------------------------------------------
+# CLAUDE.md — context for Claude Code when configuring/running experiments
+# ---------------------------------------------------------------------------
+
+DEFAULT_CLAUDE_MD = r'''# Autoresearch Studio project
+
+This project uses **autoresearchstudio** (`ars`) — an autonomous ML experiment framework.
+The `ars` CLI handles experiment execution, metric extraction, keep/discard decisions, and dashboard sync automatically.
+
+## Project files
+
+| File | Role | Can you modify it? |
+|------|------|--------------------|
+| `train.py` | Model, hyperparameters, training loop | **Yes** — this is the main file you optimize |
+| `prepare.py` | Data loading, evaluation function, constants | **No** during experiments (read-only). Edit only when adapting to a new dataset **before** `ars setup` |
+| `autoresearch.yaml` | Configuration: metric, timeout, file roles, API key | Edit when configuring, not during the experiment loop |
+| `program.md` | Auto-generated instructions for the experiment loop | Do not edit manually — regenerate with `ars generate` |
+
+## Two modes of operation
+
+### 1. Configure mode (before experiments start)
+If the user asks you to adapt the project to their dataset/task:
+- Modify `prepare.py`: replace data loading, evaluation, constants
+- Modify `train.py`: adapt the model architecture to the new data shape
+- Update `autoresearch.yaml`: set metric name, pattern, direction, timeout, constraints
+- Run `ars generate` to update `program.md`
+
+### 2. Experiment mode (autonomous loop)
+Once experiments begin, follow the instructions in `program.md`:
+- Only modify files listed under `files.editable` in `autoresearch.yaml`
+- Use `ars` commands for the loop: `ars run` → `ars log` → `ars judge`
+- Never stop — run indefinitely until the user interrupts
+
+## Key ars commands
+
+```
+ars setup --tag <tag>    # create branch + init tracking + download data
+ars run -d "description" # run experiment with timeout
+ars log -d "description" # extract metrics from output
+ars judge                # keep if improved, discard (auto-revert) if not
+ars status               # current state, best metric
+ars results              # full results table
+```
+
+## Output format contract
+
+`train.py` must print metrics in this exact format (matched by regex in `autoresearch.yaml`):
+```
+val_accuracy:     0.990625
+val_loss:         0.083412
+num_params:       421642
+```
+The metric names and format must match the `metric.pattern` fields in `autoresearch.yaml`.
+'''
+
+# ---------------------------------------------------------------------------
 # prepare.py — data loading & evaluation (READ-ONLY during experiments)
 # ---------------------------------------------------------------------------
 
