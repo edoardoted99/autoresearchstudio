@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from .models import ApiKey, Experiment
 
-VERSION = "0.4.3"
+VERSION = "0.4.4"
 
 
 def _get_api_key(request):
