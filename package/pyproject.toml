@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autoresearchstudio"
-version = "0.4.3"
+version = "0.4.4"
 description = "Generalized autonomous ML research framework"
 readme = "README.md"
 requires-python = ">=3.10"
