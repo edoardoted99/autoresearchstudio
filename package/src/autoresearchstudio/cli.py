@@ -237,7 +237,7 @@ def cmd_init(args):
     # --- 5. Print summary ---
     if api_key:
         base_url = config.api.endpoint.rsplit("/api", 1)[0]
-        dashboard_url = f"{base_url}/?key={api_key}"
+        dashboard_url = f"{base_url}/dashboard/?key={api_key}"
         print(f"\n  Dashboard: {dashboard_url}")
 
     print("\nDone! Launch Claude and tell it:")
@@ -624,7 +624,7 @@ def cmd_key(args):
 
     print(f"API key: {key}")
     print(f"Saved to {CONFIG_FILENAME}")
-    print(f"Dashboard: {base_url}/?key={key}")
+    print(f"Dashboard: {base_url}/dashboard/?key={key}")
 
     # Sync ALL experiments (including running) with the new key
     config = load_config()  # reload with new key
