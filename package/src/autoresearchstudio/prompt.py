@@ -56,9 +56,9 @@ LOOP FOREVER:
 3. `git add {editable_files_plain} && git commit -m "description of change"`
 4. `ars run --description "description of change"`
 5. `ars log --description "description of change"`
-6. `ars judge`
-7. **KEEP** → the branch advances with your change
-8. **DISCARD** → the commit was reverted automatically, you're back to the previous best
+6. `ars judge` — compares the new metric against the current best ({direction_text}). If improved → KEEP, otherwise → DISCARD.
+7. **KEEP** → metric improved ({direction_text}), the branch advances with your change
+8. **DISCARD** → metric did not improve, the commit was reverted automatically, you're back to the previous best
 9. Repeat from step 1
 
 **Timeout**: Each run has a {timeout}s timeout (~{timeout_minutes} min). Exceeding it → crash → auto-revert.

@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from .models import ApiKey, Experiment
 
-VERSION = "0.4.4"
+VERSION = "0.4.5"
 
 
 def _get_api_key(request):
@@ -55,8 +55,6 @@ def dashboard(request):
     keeps = experiments.filter(status="keep").count()
     discards = experiments.filter(status="discard").count()
     crashes = experiments.filter(status="crash").count()
-    best = experiments.filter(status="keep", metric_value__isnull=False).order_by("-metric_value").first()
-
     # Auto-close stale "running" experiments (timeout + 2min grace period)
     stale_cutoff = timezone.now() - timedelta(minutes=2)
     for exp in experiments.filter(status="running", started_at__isnull=False):
@@ -68,10 +66,18 @@ def dashboard(request):
     # Running experiment (for progress bar)
     running_exp = experiments.filter(status="running").order_by("-id").first()
 
-    # Detect metric direction from first experiment's metric_name
+    # Metric direction: prefer config (sent by CLI), fall back to heuristic
     first_with_metric = experiments.filter(metric_name__gt="").first()
     metric_name = first_with_metric.metric_name if first_with_metric else "metric"
-    direction = "minimize" if any(k in metric_name.lower() for k in ("loss", "error", "bpb")) else "maximize"
+    config = api_key.config or {}
+    if config.get("metric_direction"):
+        direction = config["metric_direction"]
+    else:
+        direction = "minimize" if any(k in metric_name.lower() for k in ("loss", "error", "bpb")) else "maximize"
+
+    # Best experiment (direction-aware)
+    order = "metric_value" if direction == "minimize" else "-metric_value"
+    best = experiments.filter(status="keep", metric_value__isnull=False).order_by(order).first()
 
     # Chart and tree data
     chart_data = _build_chart_data(experiments, direction=direction)
